@@ -195,16 +195,6 @@
             display: block;
         }
 
-        .badge-new {
-            background-color: #ef4444;
-            color: white;
-            font-size: 10px;
-            font-weight: bold;
-            padding: 2px 6px;
-            border-radius: 10px;
-            display: inline-block;
-        }
-
         .card {
             background: var(--card-bg);
             padding: 24px;
@@ -316,6 +306,14 @@
             opacity: 0.9;
             line-height: 1.5;
         }
+        .notice-footer {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 10px;
+            padding-top: 6px;
+            border-top: 1px dashed var(--border-color);
+            text-align: right;
+        }
 
         .member-grid {
             display: grid;
@@ -408,7 +406,7 @@
 
     <!-- 上部ヘッダー -->
     <div id="mobile-header" class="mobile-header hidden">
-        <span class="header-brand">🏢 特別関連情報捜査員</span>
+        <span class="header-brand">🏢 組織ポータル (クラウド同期)</span>
         <button id="hamburger-btn" class="hamburger-btn">☰ メニュー</button>
     </div>
 
@@ -417,7 +415,7 @@
         <aside id="sidebar">
             <div>
                 <div class="sidebar-header">
-                    <h2>🏢 特別関連情報捜査員ポータル</h2>
+                    <h2>🏢 組織ポータル</h2>
                     <div id="user-info-display" style="font-size: 12px; opacity: 0.8; margin-top: 4px;"></div>
                 </div>
                 <ul class="sidebar-menu">
@@ -513,8 +511,14 @@
             document.getElementById('sidebar').classList.toggle('mobile-open');
         });
 
-        const DEFAULT_ADMIN_ID = "admin";
-        const DEFAULT_ADMIN_RAW_PASS = "secret123";
+        // デフォルト管理者認証情報 (ブラウザのlocalStorageでカスタム変更を記憶)
+        function getAdminCredentials() {
+            return {
+                id: localStorage.getItem('admin_custom_id') || "admin",
+                pass: localStorage.getItem('admin_custom_pass') || "secret123",
+                name: localStorage.getItem('admin_custom_name') || "管理者"
+            };
+        }
 
         const loginContainer = document.getElementById('login-container');
         const appContainer = document.getElementById('app-container');
@@ -574,7 +578,7 @@
             }
         });
 
-        // ログイン処理（管理者＋Firestore登録ユーザー対応）
+        // ログイン処理
         loginBtn.addEventListener('click', handleLogin);
         passwordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleLogin();
@@ -589,16 +593,17 @@
                 return;
             }
 
-            // デフォルト管理者チェック
-            if (id === DEFAULT_ADMIN_ID && pass === DEFAULT_ADMIN_RAW_PASS) {
-                const adminUser = { id: "admin", name: "管理者", role: "admin" };
+            const adminCred = getAdminCredentials();
+            // 管理者チェック (IDまたはカスタム変更後のIDに対応)
+            if ((id === "admin" || id === adminCred.id) && pass === adminCred.pass) {
+                const adminUser = { id: "admin", name: adminCred.name, role: "admin" };
                 setCurrentUser(adminUser);
                 errorMsg.textContent = '';
                 showApp();
                 return;
             }
 
-            // Firestoreから一般ユーザーを検索してログイン
+            // Firestoreから一般ユーザーを検索
             try {
                 const { doc, getDoc } = window.fb;
                 const userDoc = await getDoc(doc(window.db, "users", id));
@@ -688,7 +693,7 @@
             }
         });
 
-        // プロフィール & パスワード更新処理
+        // プロフィール & パスワード更新処理 (管理者・一般対応)
         updateMyProfileBtn.addEventListener('click', async () => {
             const newName = myDisplaynameInput.value.trim();
             const newPass = myPasswordInput.value.trim();
@@ -702,17 +707,23 @@
 
             try {
                 const { doc, getDoc, setDoc } = window.fb;
-                // デフォルト管理者の場合
+
                 if (currentUser.id === 'admin') {
+                    // 管理者の場合
+                    localStorage.setItem('admin_custom_name', newName);
+                    if (newPass) {
+                        localStorage.setItem('admin_custom_pass', newPass);
+                    }
                     currentUser.name = newName;
                     setCurrentUser(currentUser);
                     myProfileMsg.className = 'success';
-                    myProfileMsg.textContent = 'プロフィールを更新しました！';
+                    myProfileMsg.textContent = newPass ? '管理者名とパスワードを更新しました！' : '管理者名を更新しました！';
+                    myPasswordInput.value = '';
                     showApp();
                     return;
                 }
 
-                // Firestoreユーザーの場合
+                // 一般メンバーの場合
                 const userRef = doc(window.db, "users", currentUser.id);
                 const userSnap = await getDoc(userRef);
                 if (userSnap.exists()) {
@@ -727,6 +738,9 @@
                     myProfileMsg.textContent = newPass ? 'プロフィールとパスワードを更新しました！' : 'プロフィールを更新しました！';
                     myPasswordInput.value = '';
                     showApp();
+                } else {
+                    myProfileMsg.className = 'error';
+                    myProfileMsg.textContent = 'ユーザーデータが見つかりませんでした。';
                 }
             } catch (err) {
                 console.error("プロフィール更新エラー:", err);
@@ -752,7 +766,6 @@
                 card.className = 'member-card';
                 
                 let actionHtml = '';
-                // 管理者は自分以外のメンバーを削除可能
                 if (currentUser && currentUser.role === 'admin' && u.id !== 'admin') {
                     actionHtml = `
                         <div class="member-actions">
@@ -770,7 +783,6 @@
             });
         }
 
-        // メンバー削除関数（グローバルスコープに配置）
         window.deleteUser = async function(userId) {
             if (!confirm(`ユーザー「@${userId}」を削除してもよろしいですか？`)) return;
             try {
@@ -803,6 +815,7 @@
                 card.innerHTML = `
                     <div class="notice-header"><h3 class="notice-title">${escapeHtml(notice.title)}</h3><span class="notice-meta">${notice.time}</span></div>
                     <p class="notice-body">${escapeHtml(notice.content)}</p>
+                    <div class="notice-footer">投稿者: <strong>${escapeHtml(notice.author || '不明')}</strong></div>
                 `;
                 noticeFeed.appendChild(card);
             });
@@ -813,7 +826,7 @@
             const content = noticeContentInput.value.trim();
             if (!title || !content) return;
             const now = new Date();
-            const timeStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes()}`;
+            const timeStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
             await window.fb.addDoc(window.fb.collection(window.db, "notices"), {
                 title, content, author: getCurrentUser().name, timestamp: Date.now(), time: timeStr
             });
