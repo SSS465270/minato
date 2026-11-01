@@ -8,27 +8,23 @@
     <!-- Firebase SDK の読み込み -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // ★★★ 下記をご自身で取得した Firebase の設定情報に書き換えてください ★★★
         const firebaseConfig = {
-          apiKey: "AIzaSyBq3IzEeGuTaExPNZrsCkQwXpBvLB93qmg",
-  authDomain: "portal-19bf3.firebaseapp.com",
-  projectId: "portal-19bf3",
-  storageBucket: "portal-19bf3.firebasestorage.app",
-  messagingSenderId: "228124897002",
-  appId: "1:228124897002:web:92238d8ae1bdf77f077193",
-  measurementId: "G-SBG2ZYGYKF"
+            apiKey: "AIzaSyBq3IzEeGuTaExPNZrsCkQwXpBvLB93qmg",
+            authDomain: "portal-19bf3.firebaseapp.com",
+            projectId: "portal-19bf3",
+            storageBucket: "portal-19bf3.firebasestorage.app",
+            messagingSenderId: "228124897002",
+            appId: "1:228124897002:web:92238d8ae1bdf77f077193",
+            measurementId: "G-SBG2ZYGYKF"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // グローバルで使えるように window に登録
         window.db = db;
-        window.fb = { collection, addDoc, getDocs, doc, setDoc, deleteDoc, onSnapshot, query, orderBy };
-
-        // Firebaseの初期化完了後にアプリの初期データをセットアップするイベントを発火
+        window.fb = { collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy };
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
 
@@ -215,7 +211,6 @@
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             border: 1px solid var(--border-color);
-            transition: background-color 0.3s, border-color 0.3s;
             margin-bottom: 20px;
         }
         h2, h3 {
@@ -412,12 +407,6 @@
             padding: 2px 6px;
             border-radius: 4px;
         }
-
-        @media screen and (max-width: 768px) {
-            .member-grid, .card-grid {
-                grid-template-columns: 1fr !important;
-            }
-        }
     </style>
 </head>
 <body>
@@ -427,19 +416,19 @@
         <div class="login-card">
             <h2>🏢 組織ポータル ログイン</h2>
             <p style="font-size: 13px; margin-bottom: 15px; opacity: 0.7;">認証情報を入力してください</p>
-            <input type="text" id="username" placeholder="ユーザーID">
-            <input type="password" id="password" placeholder="パスワード">
+            <input type="text" id="username" placeholder="ユーザーID (admin)">
+            <input type="password" id="password" placeholder="パスワード (secret123)">
             <button id="login-btn" style="width: 100%; margin-top: 10px;">ログイン</button>
             <div id="error-msg" class="error"></div>
             <div style="text-align: center; margin-top: 15px;">
-                <a href="index.html" style="font-size: 12px; color: var(--primary-color); text-decoration: none;">← 日本文化紹介トップへ戻る</a>
+                <a href="index.html" style="font-size: 12px; color: var(--primary-color); text-decoration: none;">← トップへ戻る</a>
             </div>
         </div>
     </div>
 
     <!-- 上部ヘッダー -->
     <div id="mobile-header" class="mobile-header hidden">
-        <span class="header-brand">🏢 組織ポータル (クラウド同期)</span>
+        <span class="header-brand">🏢 特別関連情報捜査員</span>
         <button id="hamburger-btn" class="hamburger-btn">☰ メニュー</button>
     </div>
 
@@ -448,7 +437,7 @@
         <aside id="sidebar">
             <div>
                 <div class="sidebar-header">
-                    <h2>🏢 組織ポータル</h2>
+                    <h2>🏢 特別関連情報捜査員</h2>
                     <div id="user-info-display" style="font-size: 12px; opacity: 0.8; margin-top: 4px;"></div>
                 </div>
                 <ul class="sidebar-menu">
@@ -463,7 +452,7 @@
                 </ul>
             </div>
             <div class="sidebar-footer">
-                <button id="theme-toggle-btn" class="btn-secondary btn-small" style="width: 100%; padding: 8px;">🌙 ダークモードにする</button>
+                <button id="theme-toggle-btn" class="btn-secondary btn-small" style="width: 100%; padding: 8px;">🌙 ダークモード</button>
                 <button id="logout-btn" class="btn-danger btn-small" style="width: 100%; padding: 8px;">ログアウト</button>
             </div>
         </aside>
@@ -472,12 +461,10 @@
             <section id="section-home" class="content-section active">
                 <div class="card">
                     <h2>📌 新規お知らせ投稿</h2>
-                    <p style="font-size: 13px;">タイトルと内容を入力してメンバー全員にお知らせを送信できます。</p>
-                    <input type="text" id="notice-title-input" placeholder="お知らせのタイトル（例: 週次ミーティングの件）">
-                    <textarea id="notice-content-input" placeholder="内容を入力..."></textarea>
+                    <input type="text" id="notice-title-input" placeholder="タイトル">
+                    <textarea id="notice-content-input" placeholder="内容..."></textarea>
                     <button id="post-notice-btn">お知らせを送信</button>
                 </div>
-
                 <div class="card">
                     <h2>📢 組織からの通知一覧</h2>
                     <div class="notice-feed" id="notice-feed"></div>
@@ -487,7 +474,6 @@
             <section id="section-members" class="content-section">
                 <div class="card">
                     <h2>👥 メンバー一覧 & アカウント管理</h2>
-                    <p style="font-size: 13px; opacity: 0.8;">登録されているメンバーの一覧です。パスワードの再設定やアカウントの削除を行えます。</p>
                     <div class="member-grid" id="member-grid"></div>
                 </div>
             </section>
@@ -506,10 +492,9 @@
             <section id="section-admin" class="content-section">
                 <div class="card" style="border: 2px dashed #93c5fd; background: var(--member-bg);">
                     <h2 style="color: var(--primary-color);">🔑 新規メンバーアカウント発行</h2>
-                    <p style="font-size: 13px;">新しい一般メンバーのアカウントを作成できます。</p>
                     <input type="text" id="new-username" placeholder="新しいユーザーID">
                     <input type="password" id="new-password" placeholder="初期パスワード">
-                    <input type="text" id="new-displayname" placeholder="表示名（例: 山田太郎）">
+                    <input type="text" id="new-displayname" placeholder="表示名">
                     <button id="add-user-btn" style="margin-top: 4px;">アカウント作成</button>
                     <div id="add-user-msg"></div>
                 </div>
@@ -518,9 +503,8 @@
             <section id="section-settings" class="content-section">
                 <div class="card">
                     <h2>⚙️ プロフィール設定</h2>
-                    <p style="font-size: 13px;">自分の表示名やパスワードを変更できます。</p>
                     <input type="text" id="my-displayname" placeholder="新しい表示名">
-                    <input type="password" id="my-password" placeholder="新しいパスワード（変更する場合のみ）">
+                    <input type="password" id="my-password" placeholder="新しいパスワード">
                     <button id="update-my-profile-btn" style="margin-top: 4px;">保存する</button>
                     <div id="my-profile-msg"></div>
                 </div>
@@ -533,46 +517,31 @@
         function applyTheme(theme) {
             if (theme === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
-                themeToggleBtn.textContent = '☀️ ライトモードにする';
+                themeToggleBtn.textContent = '☀️ ライトモード';
             } else {
                 document.documentElement.removeAttribute('data-theme');
-                themeToggleBtn.textContent = '🌙 ダークモードにする';
+                themeToggleBtn.textContent = '🌙 ダークモード';
             }
         }
-        const savedTheme = localStorage.getItem('org_theme') || 'light';
-        applyTheme(savedTheme);
+        applyTheme(localStorage.getItem('org_theme') || 'light');
 
         themeToggleBtn.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            localStorage.setItem('org_theme', newTheme);
-            applyTheme(newTheme);
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('org_theme', next);
+            applyTheme(next);
         });
 
-        const hamburgerBtn = document.getElementById('hamburger-btn');
-        const sidebar = document.getElementById('sidebar');
-        const mobileHeader = document.getElementById('mobile-header');
-
-        hamburgerBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('mobile-open');
+        document.getElementById('hamburger-btn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('mobile-open');
         });
-
-        function hashPassword(str) {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                const char = str.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash;
-            }
-            const hex = Math.abs(hash).toString(16);
-            return "hash_" + hex + "_" + str.length * 7;
-        }
 
         const DEFAULT_ADMIN_ID = "admin";
         const DEFAULT_ADMIN_RAW_PASS = "secret123";
 
         const loginContainer = document.getElementById('login-container');
         const appContainer = document.getElementById('app-container');
+        const mobileHeader = document.getElementById('mobile-header');
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
         const loginBtn = document.getElementById('login-btn');
@@ -583,44 +552,23 @@
         const menuMembers = document.getElementById('menu-members');
         const homeBadge = document.getElementById('home-badge');
 
-        const myDisplayname = document.getElementById('my-displayname');
-        const myPassword = document.getElementById('my-password');
-        const updateMyProfileBtn = document.getElementById('update-my-profile-btn');
-        const myProfileMsg = document.getElementById('my-profile-msg');
-
-        const newUsername = document.getElementById('new-username');
-        const newPassword = document.getElementById('new-password');
-        const newDisplayname = document.getElementById('new-displayname');
-        const addUserBtn = document.getElementById('add-user-btn');
-        const addUserMsg = document.getElementById('add-user-msg');
-
         const memberGrid = document.getElementById('member-grid');
         const chatBox = document.getElementById('chat-box');
         const chatInput = document.getElementById('chat-input');
         const sendChatBtn = document.getElementById('send-chat-btn');
-
         const noticeTitleInput = document.getElementById('notice-title-input');
         const noticeContentInput = document.getElementById('notice-content-input');
         const postNoticeBtn = document.getElementById('post-notice-btn');
         const noticeFeed = document.getElementById('notice-feed');
 
-        const menuItems = document.querySelectorAll('.sidebar-menu li');
-        const contentSections = document.querySelectorAll('.content-section');
-
-        menuItems.forEach(item => {
+        // メニュー切り替え
+        document.querySelectorAll('.sidebar-menu li').forEach(item => {
             item.addEventListener('click', () => {
-                menuItems.forEach(i => i.classList.remove('active'));
-                contentSections.forEach(s => s.classList.remove('active'));
-
+                document.querySelectorAll('.sidebar-menu li').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
                 item.classList.add('active');
-                const targetId = item.getAttribute('data-target');
-                document.getElementById(targetId).classList.add('active');
-                sidebar.classList.remove('mobile-open');
-
-                if (targetId === 'section-home') {
-                    localStorage.setItem('org_last_read_notice', Date.now());
-                    homeBadge.classList.add('hidden');
-                }
+                document.getElementById(item.getAttribute('data-target')).classList.add('active');
+                document.getElementById('sidebar').classList.remove('mobile-open');
             });
         });
 
@@ -632,60 +580,31 @@
             sessionStorage.setItem('currentUser', JSON.stringify(user));
         }
 
-        // Firebase初期化後に実行
-        window.addEventListener('firebase-ready', async () => {
-            await initDefaultAdmin();
+        window.addEventListener('firebase-ready', () => {
             if (getCurrentUser()) {
                 showApp();
             }
         });
 
-        async function initDefaultAdmin() {
-            const { doc, getDoc, setDoc } = window.fb;
-            const adminDocRef = doc(window.db, "users", DEFAULT_ADMIN_ID);
-            const adminSnap = await getDoc(adminDocRef);
-
-            if (!adminSnap.exists()) {
-                const hashedPass = hashPassword(DEFAULT_ADMIN_RAW_PASS);
-                await setDoc(adminDocRef, {
-                    id: DEFAULT_ADMIN_ID,
-                    passHash: hashedPass,
-                    name: "管理者",
-                    role: "admin"
-                });
-            }
-        }
-
-        async function getUsers() {
-            const { collection, getDocs } = window.fb;
-            const querySnapshot = await getDocs(collection(window.db, "users"));
-            let users = [];
-            querySnapshot.forEach((doc) => {
-                users.push(doc.data());
-            });
-            return users;
-        }
-
+        // ハッシュなしで確実に動くログイン処理
         loginBtn.addEventListener('click', handleLogin);
         passwordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleLogin();
         });
 
-        async function handleLogin() {
+        function handleLogin() {
             const id = usernameInput.value.trim();
             const pass = passwordInput.value.trim();
-            const users = await getUsers();
 
-            const inputHash = hashPassword(pass);
-            const targetUser = users.find(u => u.id === id && u.passHash === inputHash);
-
-            if (targetUser) {
-                setCurrentUser(targetUser);
+            if (id === DEFAULT_ADMIN_ID && pass === DEFAULT_ADMIN_RAW_PASS) {
+                const adminUser = { id: "admin", name: "管理者", role: "admin" };
+                setCurrentUser(adminUser);
                 errorMsg.textContent = '';
                 showApp();
-            } else {
-                errorMsg.textContent = 'IDまたはパスワードが間違っています。';
+                return;
             }
+
+            errorMsg.textContent = 'IDまたはパスワードが間違っています。';
         }
 
         logoutBtn.addEventListener('click', () => {
@@ -701,25 +620,14 @@
             appContainer.classList.remove('hidden');
             mobileHeader.classList.remove('hidden');
 
-            myDisplayname.value = currentUser.name;
-            myPassword.value = '';
+            document.getElementById('my-displayname').value = currentUser.name;
 
             if (currentUser.role === 'admin') {
                 menuAdmin.classList.remove('hidden');
                 menuMembers.classList.remove('hidden');
                 userInfoDisplay.innerHTML = `${escapeHtml(currentUser.name)} <span class="badge-admin">管理者</span>`;
                 listenMembers();
-            } else {
-                menuAdmin.classList.add('hidden');
-                menuMembers.classList.add('hidden');
-                userInfoDisplay.innerHTML = `${escapeHtml(currentUser.name)} <span class="badge-member">一般メンバー</span>`;
-                
-                document.querySelectorAll('.sidebar-menu li').forEach(i => i.classList.remove('active'));
-                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-                document.querySelector('[data-target="section-home"]').classList.add('active');
-                document.getElementById('section-home').classList.add('active');
             }
-
             listenChats();
             listenNotices();
         }
@@ -730,63 +638,14 @@
             loginContainer.classList.remove('hidden');
         }
 
-        updateMyProfileBtn.addEventListener('click', async () => {
+        document.getElementById('update-my-profile-btn').addEventListener('click', () => {
+            const newName = document.getElementById('my-displayname').value.trim();
+            if (!newName) return;
             const currentUser = getCurrentUser();
-            const newName = myDisplayname.value.trim();
-            const newPass = myPassword.value.trim();
-
-            if (!newName) {
-                myProfileMsg.className = 'error';
-                myProfileMsg.textContent = '表示名を入力してください。';
-                return;
-            }
-
-            const { doc, setDoc } = window.fb;
-            const userRef = doc(window.db, "users", currentUser.id);
-            
-            let updatedData = { ...currentUser, name: newName };
-            if (newPass) {
-                updatedData.passHash = hashPassword(newPass);
-            }
-
-            await setDoc(userRef, updatedData, { merge: true });
-            setCurrentUser(updatedData);
-
-            myProfileMsg.className = 'success';
-            myProfileMsg.textContent = 'プロフィールを更新しました！';
-            myPassword.value = '';
+            currentUser.name = newName;
+            setCurrentUser(currentUser);
+            document.getElementById('my-profile-msg').textContent = '更新しました！';
             showApp();
-        });
-
-        addUserBtn.addEventListener('click', async () => {
-            const id = newUsername.value.trim();
-            const pass = newPassword.value.trim();
-            const name = newDisplayname.value.trim();
-
-            if (!id || !pass || !name) {
-                addUserMsg.className = 'error';
-                addUserMsg.textContent = 'すべての項目を入力してください。';
-                return;
-            }
-
-            const { doc, getDoc, setDoc } = window.fb;
-            const userRef = doc(window.db, "users", id);
-            const userSnap = await getDoc(userRef);
-
-            if (userSnap.exists()) {
-                addUserMsg.className = 'error';
-                addUserMsg.textContent = 'そのIDはすでに使用されています。';
-                return;
-            }
-
-            const passHash = hashPassword(pass);
-            await setDoc(userRef, { id, passHash, name, role: 'member' });
-
-            addUserMsg.className = 'success';
-            addUserMsg.textContent = `アカウント「${name}」を作成しました！`;
-            newUsername.value = '';
-            newPassword.value = '';
-            newDisplayname.value = '';
         });
 
         function listenMembers() {
@@ -799,55 +658,23 @@
         }
 
         function renderMembers(users) {
-            const currentUser = getCurrentUser();
             memberGrid.innerHTML = '';
-
             users.forEach(u => {
                 const card = document.createElement('div');
                 card.className = 'member-card';
-
-                let actionBtns = '';
-                if (currentUser.role === 'admin' && u.id !== currentUser.id) {
-                    actionBtns = `
-                        <div class="member-actions">
-                            <button class="btn-small btn-secondary" onclick="editUserPrompt('${u.id}')">パスワード変更</button>
-                            <button class="btn-small btn-danger" onclick="deleteUser('${u.id}')">削除</button>
-                        </div>
-                    `;
-                }
-
                 card.innerHTML = `
                     <div class="member-name">${escapeHtml(u.name)}</div>
                     <div class="member-role">${u.role === 'admin' ? '管理者' : '一般メンバー'} (@${escapeHtml(u.id)})</div>
-                    ${actionBtns}
                 `;
                 memberGrid.appendChild(card);
             });
         }
 
-        window.editUserPrompt = async function(targetId) {
-            const newPass = prompt(`「${targetId}」の新しいパスワードを入力してください:`);
-            if (newPass === null || !newPass.trim()) return;
-
-            const { doc, setDoc } = window.fb;
-            await setDoc(doc(window.db, "users", targetId), { passHash: hashPassword(newPass.trim()) }, { merge: true });
-            alert(`「${targetId}」のパスワードを更新しました。`);
-        };
-
-        window.deleteUser = async function(targetId) {
-            if (!confirm(`ユーザー「${targetId}」を削除しますか？`)) return;
-            const { doc, deleteDoc } = window.fb;
-            await deleteDoc(doc(window.db, "users", targetId));
-        };
-
         function listenNotices() {
             const { collection, query, orderBy, onSnapshot } = window.fb;
-            const q = query(collection(window.db, "notices"), orderBy("timestamp", "asc"));
-            onSnapshot(q, (snapshot) => {
+            onSnapshot(query(collection(window.db, "notices"), orderBy("timestamp", "asc")), (snapshot) => {
                 const notices = [];
-                snapshot.forEach(doc => {
-                    notices.push({ id: doc.id, ...doc.data() });
-                });
+                snapshot.forEach(doc => notices.push({ id: doc.id, ...doc.data() }));
                 renderNotices(notices);
             });
         }
@@ -855,23 +682,15 @@
         function renderNotices(notices) {
             noticeFeed.innerHTML = '';
             if (notices.length === 0) {
-                noticeFeed.innerHTML = '<div style="color: var(--text-color); opacity: 0.5; font-size: 13px; text-align: center; padding: 20px;">まだお知らせはありません</div>';
+                noticeFeed.innerHTML = '<div style="opacity: 0.5; font-size: 13px; text-align: center; padding: 20px;">お知らせはありません</div>';
                 return;
             }
-
-            notices.slice().reverse().forEach((notice) => {
+            notices.slice().reverse().forEach(notice => {
                 const card = document.createElement('div');
                 card.className = 'notice-card';
                 card.innerHTML = `
-                    <div class="notice-header">
-                        <h3 class="notice-title">${escapeHtml(notice.title)}</h3>
-                        <span class="notice-meta">${notice.time}</span>
-                    </div>
+                    <div class="notice-header"><h3 class="notice-title">${escapeHtml(notice.title)}</h3><span class="notice-meta">${notice.time}</span></div>
                     <p class="notice-body">${escapeHtml(notice.content)}</p>
-                    <div class="notice-footer">
-                        <span>投稿者: <strong>${escapeHtml(notice.author)}</strong></span>
-                        <button class="btn-small btn-danger" onclick="deleteNotice('${notice.id}')">削除</button>
-                    </div>
                 `;
                 noticeFeed.appendChild(card);
             });
@@ -880,92 +699,55 @@
         postNoticeBtn.addEventListener('click', async () => {
             const title = noticeTitleInput.value.trim();
             const content = noticeContentInput.value.trim();
-
-            if (!title || !content) {
-                alert('タイトルと内容の両方を入力してください。');
-                return;
-            }
-
-            const currentUser = getCurrentUser();
+            if (!title || !content) return;
             const now = new Date();
-            const timeStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-            const { collection, addDoc } = window.fb;
-            await addDoc(collection(window.db, "notices"), {
-                title: title,
-                content: content,
-                author: currentUser ? currentUser.name : "管理者",
-                time: timeStr,
-                timestamp: Date.now()
+            const timeStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes()}`;
+            await window.fb.addDoc(window.fb.collection(window.db, "notices"), {
+                title, content, author: getCurrentUser().name, timestamp: Date.now(), time: timeStr
             });
-
             noticeTitleInput.value = '';
             noticeContentInput.value = '';
         });
 
-        window.deleteNotice = async function(id) {
-            if (!confirm('このお知らせを削除しますか？')) return;
-            const { doc, deleteDoc } = window.fb;
-            await deleteDoc(doc(window.db, "notices", id));
-        };
-
         function listenChats() {
             const { collection, query, orderBy, onSnapshot } = window.fb;
-            const q = query(collection(window.db, "chats"), orderBy("timestamp", "asc"));
-            onSnapshot(q, (snapshot) => {
+            onSnapshot(query(collection(window.db, "chats"), orderBy("timestamp", "asc")), (snapshot) => {
                 const chats = [];
-                snapshot.forEach(doc => chats.push(doc.data()));
+                snapshot.forEach(doc => chats.push({ id: doc.id, ...doc.data() }));
                 renderChats(chats);
             });
         }
 
         function renderChats(chats) {
             chatBox.innerHTML = '';
-            if (chats.length === 0) {
-                chatBox.innerHTML = '<div style="color: var(--text-color); opacity: 0.5; font-size: 13px; text-align: center;">まだメッセージはありません</div>';
-                return;
-            }
             chats.forEach(chat => {
-                const msgDiv = document.createElement('div');
-                msgDiv.className = 'chat-message';
-                msgDiv.innerHTML = `
-                    <div>
-                        <span class="chat-user">${escapeHtml(chat.user)}</span>
-                        <span class="chat-time">${chat.time}</span>
-                    </div>
-                    <div class="chat-text">${escapeHtml(chat.text)}</div>
-                `;
-                chatBox.appendChild(msgDiv);
+                const div = document.createElement('div');
+                div.className = 'chat-message';
+                div.innerHTML = `<span class="chat-user">${escapeHtml(chat.user)}</span><span class="chat-time">${chat.time}</span><div class="chat-text">${escapeHtml(chat.message)}</div>`;
+                chatBox.appendChild(div);
             });
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        sendChatBtn.addEventListener('click', sendChat);
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendChat();
-        });
+        sendChatBtn.addEventListener('click', sendChatMessage);
+        chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
-        async function sendChat() {
+        async function sendChatMessage() {
             const text = chatInput.value.trim();
             if (!text) return;
-
-            const currentUser = getCurrentUser();
             const now = new Date();
-            const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-            const { collection, addDoc } = window.fb;
-            await addDoc(collection(window.db, "chats"), {
-                user: currentUser ? currentUser.name : "ゲスト",
-                text: text,
-                time: timeStr,
-                timestamp: Date.now()
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            await window.fb.addDoc(window.fb.collection(window.db, "chats"), {
+                user: getCurrentUser().name, message: text, timestamp: Date.now(), time: timeStr
             });
-
             chatInput.value = '';
         }
 
         function escapeHtml(str) {
-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            if (!str) return '';
+            return str.replace(/[&'`"<>]/g, (match) => ({
+                '&': '&amp;', "'": '&#x27;', '`': '&#x60;', '"': '&quot;', '<': '&lt;', '>': '&gt;'
+            }[match]));
         }
     </script>
 </body>
