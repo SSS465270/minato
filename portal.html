@@ -3,7 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>組織ポータルアプリ</title>
+    <title>組織ポータルアプリ（クラウド同期版）</title>
+    
+    <!-- Firebase SDK の読み込み -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // ★★★ 下記をご自身で取得した Firebase の設定情報に書き換えてください ★★★
+        const firebaseConfig = {
+          apiKey: "AIzaSyBq3IzEeGuTaExPNZrsCkQwXpBvLB93qmg",
+  authDomain: "portal-19bf3.firebaseapp.com",
+  projectId: "portal-19bf3",
+  storageBucket: "portal-19bf3.firebasestorage.app",
+  messagingSenderId: "228124897002",
+  appId: "1:228124897002:web:92238d8ae1bdf77f077193",
+  measurementId: "G-SBG2ZYGYKF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // グローバルで使えるように window に登録
+        window.db = db;
+        window.fb = { collection, addDoc, getDocs, doc, setDoc, deleteDoc, onSnapshot, query, orderBy };
+
+        // Firebaseの初期化完了後にアプリの初期データをセットアップするイベントを発火
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
+
     <style>
         :root {
             --primary-color: #2563eb;
@@ -58,7 +86,6 @@
             border: 1px solid var(--border-color);
         }
 
-        /* 上部ヘッダー（ボタンを右側に配置） */
         .mobile-header {
             display: flex;
             align-items: center;
@@ -70,7 +97,6 @@
             top: 0;
             z-index: 1000;
         }
-        /* ロゴを左に配置するためのコンテナ */
         .header-brand {
             font-weight: bold;
             color: var(--primary-color);
@@ -84,7 +110,7 @@
             font-size: 14px;
             cursor: pointer;
             font-weight: bold;
-            margin-left: auto; /* ボタンを右側に押し出す */
+            margin-left: auto;
         }
 
         .app-layout {
@@ -94,12 +120,11 @@
             position: relative;
         }
         
-        /* サイドバー */
         aside {
             width: 250px;
             background: var(--sidebar-bg);
             border-right: 1px solid var(--border-color);
-            display: none; /* 初期状態では隠す */
+            display: none;
             flex-direction: column;
             justify-content: space-between;
             padding: 20px;
@@ -113,7 +138,7 @@
             box-shadow: 4px 0 15px rgba(0,0,0,0.1);
         }
         aside.mobile-open {
-            display: flex; /* ハンバーガーボタン押下で表示 */
+            display: flex;
         }
 
         .sidebar-header h2 {
@@ -412,9 +437,9 @@
         </div>
     </div>
 
-    <!-- 上部ヘッダー（ボタンを右側に配置） -->
+    <!-- 上部ヘッダー -->
     <div id="mobile-header" class="mobile-header hidden">
-        <span class="header-brand">🏢 特別情報関連捜査員ポータル</span>
+        <span class="header-brand">🏢 組織ポータル (クラウド同期)</span>
         <button id="hamburger-btn" class="hamburger-btn">☰ メニュー</button>
     </div>
 
@@ -423,7 +448,7 @@
         <aside id="sidebar">
             <div>
                 <div class="sidebar-header">
-                    <h2>🏢 特別情報関連捜査員ポータル</h2>
+                    <h2>🏢 組織ポータル</h2>
                     <div id="user-info-display" style="font-size: 12px; opacity: 0.8; margin-top: 4px;"></div>
                 </div>
                 <ul class="sidebar-menu">
@@ -524,7 +549,6 @@
             applyTheme(newTheme);
         });
 
-        // ハンバーガーメニュー開閉の制御
         const hamburgerBtn = document.getElementById('hamburger-btn');
         const sidebar = document.getElementById('sidebar');
         const mobileHeader = document.getElementById('mobile-header');
@@ -591,58 +615,14 @@
                 item.classList.add('active');
                 const targetId = item.getAttribute('data-target');
                 document.getElementById(targetId).classList.add('active');
-
-                // メニュー項目を選んだら自動でサイドバーを閉じる
                 sidebar.classList.remove('mobile-open');
 
                 if (targetId === 'section-home') {
-                    const notices = JSON.parse(localStorage.getItem('org_notices') || '[]');
-                    if (notices.length > 0) {
-                        const latestNotice = notices[notices.length - 1];
-                        localStorage.setItem('org_last_read_notice', latestNotice.timestamp || 0);
-                    } else {
-                        localStorage.setItem('org_last_read_notice', Date.now());
-                    }
-                    checkUnreadNotices();
+                    localStorage.setItem('org_last_read_notice', Date.now());
+                    homeBadge.classList.add('hidden');
                 }
             });
         });
-
-        function checkUnreadNotices() {
-            const notices = JSON.parse(localStorage.getItem('org_notices') || '[]');
-            if (notices.length === 0) {
-                homeBadge.classList.add('hidden');
-                return;
-            }
-
-            const lastRead = Number(localStorage.getItem('org_last_read_notice') || 0);
-            const latestNotice = notices[notices.length - 1];
-
-            if (latestNotice.timestamp > lastRead) {
-                homeBadge.classList.remove('hidden');
-            } else {
-                homeBadge.classList.add('hidden');
-            }
-        }
-
-        function getUsers() {
-            let users = JSON.parse(localStorage.getItem('org_users') || '[]');
-            if (users.length === 0) {
-                const hashedPass = hashPassword(DEFAULT_ADMIN_RAW_PASS);
-                users.push({
-                    id: DEFAULT_ADMIN_ID,
-                    passHash: hashedPass,
-                    name: "管理者",
-                    role: "admin"
-                });
-                localStorage.setItem('org_users', JSON.stringify(users));
-            }
-            return users;
-        }
-
-        function saveUsers(users) {
-            localStorage.setItem('org_users', JSON.stringify(users));
-        }
 
         function getCurrentUser() {
             return JSON.parse(sessionStorage.getItem('currentUser') || 'null');
@@ -652,28 +632,49 @@
             sessionStorage.setItem('currentUser', JSON.stringify(user));
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const users = getUsers();
-            const adminUser = users.find(u => u.id === DEFAULT_ADMIN_ID);
-            if (!adminUser || !adminUser.passHash.startsWith('hash_')) {
-                localStorage.removeItem('org_users');
-                getUsers();
-            }
-
+        // Firebase初期化後に実行
+        window.addEventListener('firebase-ready', async () => {
+            await initDefaultAdmin();
             if (getCurrentUser()) {
                 showApp();
             }
         });
+
+        async function initDefaultAdmin() {
+            const { doc, getDoc, setDoc } = window.fb;
+            const adminDocRef = doc(window.db, "users", DEFAULT_ADMIN_ID);
+            const adminSnap = await getDoc(adminDocRef);
+
+            if (!adminSnap.exists()) {
+                const hashedPass = hashPassword(DEFAULT_ADMIN_RAW_PASS);
+                await setDoc(adminDocRef, {
+                    id: DEFAULT_ADMIN_ID,
+                    passHash: hashedPass,
+                    name: "管理者",
+                    role: "admin"
+                });
+            }
+        }
+
+        async function getUsers() {
+            const { collection, getDocs } = window.fb;
+            const querySnapshot = await getDocs(collection(window.db, "users"));
+            let users = [];
+            querySnapshot.forEach((doc) => {
+                users.push(doc.data());
+            });
+            return users;
+        }
 
         loginBtn.addEventListener('click', handleLogin);
         passwordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleLogin();
         });
 
-        function handleLogin() {
+        async function handleLogin() {
             const id = usernameInput.value.trim();
             const pass = passwordInput.value.trim();
-            const users = getUsers();
+            const users = await getUsers();
 
             const inputHash = hashPassword(pass);
             const targetUser = users.find(u => u.id === id && u.passHash === inputHash);
@@ -698,7 +699,7 @@
             const currentUser = getCurrentUser();
             loginContainer.classList.add('hidden');
             appContainer.classList.remove('hidden');
-            mobileHeader.classList.remove('hidden'); // 上部メニューを表示
+            mobileHeader.classList.remove('hidden');
 
             myDisplayname.value = currentUser.name;
             myPassword.value = '';
@@ -707,7 +708,7 @@
                 menuAdmin.classList.remove('hidden');
                 menuMembers.classList.remove('hidden');
                 userInfoDisplay.innerHTML = `${escapeHtml(currentUser.name)} <span class="badge-admin">管理者</span>`;
-                renderMembers();
+                listenMembers();
             } else {
                 menuAdmin.classList.add('hidden');
                 menuMembers.classList.add('hidden');
@@ -719,8 +720,8 @@
                 document.getElementById('section-home').classList.add('active');
             }
 
-            loadChats();
-            loadNotices();
+            listenChats();
+            listenNotices();
         }
 
         function showLogin() {
@@ -729,7 +730,7 @@
             loginContainer.classList.remove('hidden');
         }
 
-        updateMyProfileBtn.addEventListener('click', () => {
+        updateMyProfileBtn.addEventListener('click', async () => {
             const currentUser = getCurrentUser();
             const newName = myDisplayname.value.trim();
             const newPass = myPassword.value.trim();
@@ -740,25 +741,24 @@
                 return;
             }
 
-            const users = getUsers();
-            const userIdx = users.findIndex(u => u.id === currentUser.id);
-
-            if (userIdx !== -1) {
-                users[userIdx].name = newName;
-                if (newPass) {
-                    users[userIdx].passHash = hashPassword(newPass);
-                }
-                saveUsers(users);
-                setCurrentUser(users[userIdx]);
-
-                myProfileMsg.className = 'success';
-                myProfileMsg.textContent = 'プロフィールを更新しました！';
-                myPassword.value = '';
-                showApp();
+            const { doc, setDoc } = window.fb;
+            const userRef = doc(window.db, "users", currentUser.id);
+            
+            let updatedData = { ...currentUser, name: newName };
+            if (newPass) {
+                updatedData.passHash = hashPassword(newPass);
             }
+
+            await setDoc(userRef, updatedData, { merge: true });
+            setCurrentUser(updatedData);
+
+            myProfileMsg.className = 'success';
+            myProfileMsg.textContent = 'プロフィールを更新しました！';
+            myPassword.value = '';
+            showApp();
         });
 
-        addUserBtn.addEventListener('click', () => {
+        addUserBtn.addEventListener('click', async () => {
             const id = newUsername.value.trim();
             const pass = newPassword.value.trim();
             const name = newDisplayname.value.trim();
@@ -769,27 +769,36 @@
                 return;
             }
 
-            const users = getUsers();
-            if (users.some(u => u.id === id)) {
+            const { doc, getDoc, setDoc } = window.fb;
+            const userRef = doc(window.db, "users", id);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
                 addUserMsg.className = 'error';
                 addUserMsg.textContent = 'そのIDはすでに使用されています。';
                 return;
             }
 
             const passHash = hashPassword(pass);
-            users.push({ id, passHash, name, role: 'member' });
-            saveUsers(users);
+            await setDoc(userRef, { id, passHash, name, role: 'member' });
 
             addUserMsg.className = 'success';
             addUserMsg.textContent = `アカウント「${name}」を作成しました！`;
             newUsername.value = '';
             newPassword.value = '';
             newDisplayname.value = '';
-            renderMembers();
         });
 
-        function renderMembers() {
-            const users = getUsers();
+        function listenMembers() {
+            const { collection, onSnapshot } = window.fb;
+            onSnapshot(collection(window.db, "users"), (snapshot) => {
+                const users = [];
+                snapshot.forEach(doc => users.push(doc.data()));
+                renderMembers(users);
+            });
+        }
+
+        function renderMembers(users) {
             const currentUser = getCurrentUser();
             memberGrid.innerHTML = '';
 
@@ -816,31 +825,31 @@
             });
         }
 
-        window.editUserPrompt = function(targetId) {
-            const users = getUsers();
-            const user = users.find(u => u.id === targetId);
-            if (!user) return;
-
-            const newPass = prompt(`「${user.id}」の新しいパスワードを入力してください:`);
+        window.editUserPrompt = async function(targetId) {
+            const newPass = prompt(`「${targetId}」の新しいパスワードを入力してください:`);
             if (newPass === null || !newPass.trim()) return;
 
-            user.passHash = hashPassword(newPass.trim());
-            saveUsers(users);
-            alert(`「${user.id}」のパスワードを更新しました。`);
+            const { doc, setDoc } = window.fb;
+            await setDoc(doc(window.db, "users", targetId), { passHash: hashPassword(newPass.trim()) }, { merge: true });
+            alert(`「${targetId}」のパスワードを更新しました。`);
         };
 
-        window.deleteUser = function(targetId) {
+        window.deleteUser = async function(targetId) {
             if (!confirm(`ユーザー「${targetId}」を削除しますか？`)) return;
-            let users = getUsers();
-            users = users.filter(u => u.id !== targetId);
-            saveUsers(users);
-            renderMembers();
+            const { doc, deleteDoc } = window.fb;
+            await deleteDoc(doc(window.db, "users", targetId));
         };
 
-        function loadNotices() {
-            const notices = JSON.parse(localStorage.getItem('org_notices') || '[]');
-            renderNotices(notices);
-            checkUnreadNotices();
+        function listenNotices() {
+            const { collection, query, orderBy, onSnapshot } = window.fb;
+            const q = query(collection(window.db, "notices"), orderBy("timestamp", "asc"));
+            onSnapshot(q, (snapshot) => {
+                const notices = [];
+                snapshot.forEach(doc => {
+                    notices.push({ id: doc.id, ...doc.data() });
+                });
+                renderNotices(notices);
+            });
         }
 
         function renderNotices(notices) {
@@ -850,8 +859,7 @@
                 return;
             }
 
-            notices.slice().reverse().forEach((notice, index) => {
-                const actualIndex = notices.length - 1 - index;
+            notices.slice().reverse().forEach((notice) => {
                 const card = document.createElement('div');
                 card.className = 'notice-card';
                 card.innerHTML = `
@@ -862,14 +870,14 @@
                     <p class="notice-body">${escapeHtml(notice.content)}</p>
                     <div class="notice-footer">
                         <span>投稿者: <strong>${escapeHtml(notice.author)}</strong></span>
-                        <button class="btn-small btn-danger" onclick="deleteNotice(${actualIndex})">削除</button>
+                        <button class="btn-small btn-danger" onclick="deleteNotice('${notice.id}')">削除</button>
                     </div>
                 `;
                 noticeFeed.appendChild(card);
             });
         }
 
-        postNoticeBtn.addEventListener('click', () => {
+        postNoticeBtn.addEventListener('click', async () => {
             const title = noticeTitleInput.value.trim();
             const content = noticeContentInput.value.trim();
 
@@ -879,12 +887,11 @@
             }
 
             const currentUser = getCurrentUser();
-            const notices = JSON.parse(localStorage.getItem('org_notices') || '[]');
-            
             const now = new Date();
             const timeStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-            notices.push({
+            const { collection, addDoc } = window.fb;
+            await addDoc(collection(window.db, "notices"), {
                 title: title,
                 content: content,
                 author: currentUser ? currentUser.name : "管理者",
@@ -892,23 +899,24 @@
                 timestamp: Date.now()
             });
 
-            localStorage.setItem('org_notices', JSON.stringify(notices));
             noticeTitleInput.value = '';
             noticeContentInput.value = '';
-            loadNotices();
         });
 
-        window.deleteNotice = function(index) {
+        window.deleteNotice = async function(id) {
             if (!confirm('このお知らせを削除しますか？')) return;
-            let notices = JSON.parse(localStorage.getItem('org_notices') || '[]');
-            notices.splice(index, 1);
-            localStorage.setItem('org_notices', JSON.stringify(notices));
-            loadNotices();
+            const { doc, deleteDoc } = window.fb;
+            await deleteDoc(doc(window.db, "notices", id));
         };
 
-        function loadChats() {
-            const chats = JSON.parse(localStorage.getItem('org_chats') || '[]');
-            renderChats(chats);
+        function listenChats() {
+            const { collection, query, orderBy, onSnapshot } = window.fb;
+            const q = query(collection(window.db, "chats"), orderBy("timestamp", "asc"));
+            onSnapshot(q, (snapshot) => {
+                const chats = [];
+                snapshot.forEach(doc => chats.push(doc.data()));
+                renderChats(chats);
+            });
         }
 
         function renderChats(chats) {
@@ -937,23 +945,22 @@
             if (e.key === 'Enter') sendChat();
         });
 
-        function sendChat() {
+        async function sendChat() {
             const text = chatInput.value.trim();
             if (!text) return;
 
             const currentUser = getCurrentUser();
-            const chats = JSON.parse(localStorage.getItem('org_chats') || '[]');
             const now = new Date();
             const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-            chats.push({
+            const { collection, addDoc } = window.fb;
+            await addDoc(collection(window.db, "chats"), {
                 user: currentUser ? currentUser.name : "ゲスト",
                 text: text,
-                time: timeStr
+                time: timeStr,
+                timestamp: Date.now()
             });
 
-            localStorage.setItem('org_chats', JSON.stringify(chats));
-            renderChats(chats);
             chatInput.value = '';
         }
 
