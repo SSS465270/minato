@@ -58,9 +58,9 @@
             border: 1px solid var(--border-color);
         }
 
-        /* スマホ用ハンバーガーボタン（初期は非表示） */
+        /* 上部ヘッダー（ボタンを右側に配置） */
         .mobile-header {
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: space-between;
             background: var(--sidebar-bg);
@@ -70,32 +70,52 @@
             top: 0;
             z-index: 1000;
         }
+        /* ロゴを左に配置するためのコンテナ */
+        .header-brand {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
         .hamburger-btn {
             background: var(--primary-color);
             color: white;
             border: none;
-            padding: 8px 12px;
+            padding: 8px 14px;
             border-radius: 6px;
             font-size: 14px;
             cursor: pointer;
+            font-weight: bold;
+            margin-left: auto; /* ボタンを右側に押し出す */
         }
 
         .app-layout {
             display: flex;
-            height: 100vh;
+            height: calc(100vh - 53px);
             overflow: hidden;
+            position: relative;
         }
+        
+        /* サイドバー */
         aside {
             width: 250px;
             background: var(--sidebar-bg);
             border-right: 1px solid var(--border-color);
-            display: flex;
+            display: none; /* 初期状態では隠す */
             flex-direction: column;
             justify-content: space-between;
             padding: 20px;
             transition: background-color 0.3s, border-color 0.3s;
             box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 999;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.1);
         }
+        aside.mobile-open {
+            display: flex; /* ハンバーガーボタン押下で表示 */
+        }
+
         .sidebar-header h2 {
             font-size: 18px;
             margin: 0 0 5px 0;
@@ -145,6 +165,7 @@
             overflow-y: auto;
             background: var(--bg-color);
             box-sizing: border-box;
+            width: 100%;
         }
         .content-section {
             display: none;
@@ -367,30 +388,7 @@
             border-radius: 4px;
         }
 
-        /* 📱 スマホ向けハンバーガー＆レスポンシブ調整（幅768px以下） */
         @media screen and (max-width: 768px) {
-            .mobile-header {
-                display: flex;
-            }
-            .app-layout {
-                flex-direction: column;
-                height: calc(100vh - 53px);
-                overflow-y: auto;
-            }
-            aside {
-                width: 100%;
-                height: auto;
-                border-right: none;
-                border-bottom: 1px solid var(--border-color);
-                display: none; /* 初期状態ではサイドバーを隠す */
-            }
-            aside.mobile-open {
-                display: flex; /* ハンバーガーボタン押下で表示 */
-            }
-            main {
-                height: auto;
-                padding: 15px;
-            }
             .member-grid, .card-grid {
                 grid-template-columns: 1fr !important;
             }
@@ -414,9 +412,9 @@
         </div>
     </div>
 
-    <!-- スマホ用上部ヘッダー（ハンバーガーボタン付き） -->
+    <!-- 上部ヘッダー（ボタンを右側に配置） -->
     <div id="mobile-header" class="mobile-header hidden">
-        <span style="font-weight: bold; color: var(--primary-color);">🏢 組織ポータル</span>
+        <span class="header-brand">🏢 特別情報関連捜査員ポータル</span>
         <button id="hamburger-btn" class="hamburger-btn">☰ メニュー</button>
     </div>
 
@@ -425,7 +423,7 @@
         <aside id="sidebar">
             <div>
                 <div class="sidebar-header">
-                    <h2>🏢 組織ポータル</h2>
+                    <h2>🏢 特別情報関連捜査員ポータル</h2>
                     <div id="user-info-display" style="font-size: 12px; opacity: 0.8; margin-top: 4px;"></div>
                 </div>
                 <ul class="sidebar-menu">
@@ -594,10 +592,8 @@
                 const targetId = item.getAttribute('data-target');
                 document.getElementById(targetId).classList.add('active');
 
-                // スマホでメニュー項目を選んだら自動でサイドバーを閉じる
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('mobile-open');
-                }
+                // メニュー項目を選んだら自動でサイドバーを閉じる
+                sidebar.classList.remove('mobile-open');
 
                 if (targetId === 'section-home') {
                     const notices = JSON.parse(localStorage.getItem('org_notices') || '[]');
@@ -702,7 +698,7 @@
             const currentUser = getCurrentUser();
             loginContainer.classList.add('hidden');
             appContainer.classList.remove('hidden');
-            mobileHeader.classList.remove('hidden'); // スマホ用上部メニューを表示
+            mobileHeader.classList.remove('hidden'); // 上部メニューを表示
 
             myDisplayname.value = currentUser.name;
             myPassword.value = '';
