@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>組織ポータルアプリ</title>
     <style>
-        /* ライトモード（デフォルト）のカラー変数 */
         :root {
             --primary-color: #2563eb;
             --primary-hover: #1d4ed8;
@@ -18,7 +17,6 @@
             --chat-bg: #f8fafc;
         }
 
-        /* ダークモードのカラー変数 */
         [data-theme="dark"] {
             --primary-color: #3b82f6;
             --primary-hover: #60a5fa;
@@ -42,7 +40,6 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
-        /* ログイン画面のスタイル */
         .login-wrapper {
             display: flex;
             justify-content: center;
@@ -59,7 +56,6 @@
             border: 1px solid var(--border-color);
         }
 
-        /* メインアプリのレイアウト（サイドバー形式） */
         .app-layout {
             display: flex;
             height: 100vh;
@@ -131,7 +127,6 @@
             display: block;
         }
 
-        /* 未読バッジのスタイル */
         .badge-new {
             background-color: #ef4444;
             color: white;
@@ -142,7 +137,6 @@
             display: inline-block;
         }
 
-        /* 共通カード・UIスタイル */
         .card {
             background: var(--card-bg);
             padding: 24px;
@@ -219,7 +213,6 @@
             display: none !important;
         }
 
-        /* お知らせ投稿スタイル */
         .notice-feed {
             display: flex;
             flex-direction: column;
@@ -267,7 +260,6 @@
             opacity: 0.7;
         }
 
-        /* メンバーグリッド */
         .member-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -297,7 +289,6 @@
             margin-top: 8px;
         }
 
-        /* チャット */
         .chat-box {
             height: 400px;
             overflow-y: auto;
@@ -368,13 +359,12 @@
         </div>
     </div>
 
-    <!-- メインアプリ画面（サイドバー構成） -->
+    <!-- メインアプリ画面 -->
     <div id="app-container" class="app-layout hidden">
-        <!-- サイドバーナビゲーション -->
         <aside>
             <div>
                 <div class="sidebar-header">
-                    <h2>🏢 組織ポータル</h2>
+                    <h2>🏢 特別関連情報捜査員ポータル</h2>
                     <div id="user-info-display" style="font-size: 12px; opacity: 0.8; margin-top: 4px;"></div>
                 </div>
                 <ul class="sidebar-menu">
@@ -382,7 +372,6 @@
                         <span>🏠 ホーム（お知らせ）</span>
                         <span id="home-badge" class="badge-new hidden">NEW</span>
                     </li>
-                    <!-- メンバー一覧は管理者のみ表示 -->
                     <li data-target="section-members" id="menu-members" class="hidden">👥 メンバー一覧</li>
                     <li data-target="section-chat" id="menu-chat">💬 チーム掲示板</li>
                     <li data-target="section-admin" id="menu-admin" class="hidden">🔑 アカウント管理</li>
@@ -395,9 +384,7 @@
             </div>
         </aside>
 
-        <!-- メインコンテンツ表示エリア -->
         <main>
-            <!-- 1. ホームセクション -->
             <section id="section-home" class="content-section active">
                 <div class="card">
                     <h2>📌 新規お知らせ投稿</h2>
@@ -413,7 +400,6 @@
                 </div>
             </section>
 
-            <!-- 2. メンバー一覧セクション（管理者限定） -->
             <section id="section-members" class="content-section">
                 <div class="card">
                     <h2>👥 メンバー一覧 & アカウント管理</h2>
@@ -422,7 +408,6 @@
                 </div>
             </section>
 
-            <!-- 3. チャットセクション -->
             <section id="section-chat" class="content-section">
                 <div class="card">
                     <h2>💬 チーム掲示板 (チャット)</h2>
@@ -434,7 +419,6 @@
                 </div>
             </section>
 
-            <!-- 4. 管理者専用セクション -->
             <section id="section-admin" class="content-section">
                 <div class="card" style="border: 2px dashed #93c5fd; background: var(--member-bg);">
                     <h2 style="color: var(--primary-color);">🔑 新規メンバーアカウント発行</h2>
@@ -447,7 +431,6 @@
                 </div>
             </section>
 
-            <!-- 5. プロフィール設定セクション -->
             <section id="section-settings" class="content-section">
                 <div class="card">
                     <h2>⚙️ プロフィール設定</h2>
@@ -462,7 +445,6 @@
     </div>
 
     <script>
-        // テーマ初期化
         const themeToggleBtn = document.getElementById('theme-toggle-btn');
         function applyTheme(theme) {
             if (theme === 'dark') {
@@ -483,7 +465,6 @@
             applyTheme(newTheme);
         });
 
-        // ハッシュ化関数
         function hashPassword(str) {
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
@@ -498,7 +479,6 @@
         const DEFAULT_ADMIN_ID = "admin";
         const DEFAULT_ADMIN_RAW_PASS = "secret123";
 
-        // DOM要素
         const loginContainer = document.getElementById('login-container');
         const appContainer = document.getElementById('app-container');
         const usernameInput = document.getElementById('username');
@@ -532,7 +512,6 @@
         const postNoticeBtn = document.getElementById('post-notice-btn');
         const noticeFeed = document.getElementById('notice-feed');
 
-        // サイドバータブ切り替え
         const menuItems = document.querySelectorAll('.sidebar-menu li');
         const contentSections = document.querySelectorAll('.content-section');
 
@@ -785,7 +764,6 @@
             renderMembers();
         };
 
-        // お知らせ機能
         function loadNotices() {
             const notices = JSON.parse(localStorage.getItem('org_notices') || '[]');
             renderNotices(notices);
@@ -855,7 +833,6 @@
             loadNotices();
         };
 
-        // チャット機能
         function loadChats() {
             const chats = JSON.parse(localStorage.getItem('org_chats') || '[]');
             renderChats(chats);
