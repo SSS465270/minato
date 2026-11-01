@@ -1,208 +1,132 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>組織管理システム</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Googleログイン連携アプリ</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            text-align: center;
+            margin-top: 100px;
+            background-color: #f7f9fa;
+            color: #333;
+        }
+        .card {
+            background: white;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        .logout-btn {
+            background-color: #e0e0e0;
+            color: #333;
+            margin-top: 15px;
+        }
+        .logout-btn:hover {
+            background-color: #d0d0d0;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 text-gray-800 antialiased min-h-screen">
-  <div id="app"></div>
+<body>
 
-  <script>
-    // デモ用初期データ
-    const DEMO_USERS = {
-      admin: { id: 'admin', name: '管理者 太郎', role: 'admin', roleName: '管理者', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100', dept: '役員' },
-      leader: { id: 'leader', name: '佐藤 健太', role: 'leader', roleName: 'チームリーダー', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100', dept: '開発部' },
-      member: { id: 'member', name: '鈴木 花子', role: 'member', roleName: '一般メンバー', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100', dept: 'デザイン部' }
-    };
-
-    let currentUser = null;
-    let currentTab = 'dashboard';
-    let currentChatId = 'general';
-
-    let messages = [
-      { id: 1, target: 'general', senderId: 'admin', text: '今週の全体ミーティングは15時からです。', time: '10:00' },
-      { id: 2, target: 'general', senderId: 'leader', text: '了解いたしました！準備しておきます。', time: '10:05' }
-    ];
-
-    function login(roleKey) {
-      currentUser = DEMO_USERS[roleKey];
-      renderApp();
-    }
-
-    function logout() {
-      currentUser = null;
-      renderApp();
-    }
-
-    function setTab(tab) {
-      currentTab = tab;
-      renderApp();
-    }
-
-    function sendMessage() {
-      const input = document.getElementById('chatInput');
-      if (!input || !input.value.trim()) return;
-
-      const newMsg = {
-        id: Date.now(),
-        target: currentChatId,
-        senderId: currentUser.id,
-        text: input.value.trim(),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      messages.push(newMsg);
-      input.value = '';
-      renderApp();
-
-      setTimeout(() => {
-        messages.push({
-          id: Date.now(),
-          target: currentChatId,
-          senderId: currentUser.id === 'admin' ? 'leader' : 'admin',
-          text: 'メッセージを確認しました！',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        });
-        renderApp();
-      }, 1200);
-    }
-
-    function renderApp() {
-      const app = document.getElementById('app');
-
-      if (!currentUser) {
-        app.innerHTML = `
-          <div class="min-h-screen flex items-center justify-center bg-slate-900 p-4">
-            <div class="bg-white rounded-xl shadow-2xl p-6 sm:p-8 w-full max-w-md">
-              <div class="text-center mb-6">
-                <i class="fa-solid fa-sitemap text-4xl text-indigo-600 mb-2"></i>
-                <h1 class="text-2xl font-bold text-gray-900">組織管理ポータル</h1>
-                <p class="text-sm text-gray-500 mt-1">ログインアカウントを選択してください</p>
-              </div>
-              <div class="space-y-3">
-                <button onclick="login('admin')" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg flex items-center justify-between transition">
-                  <span><i class="fa-solid fa-user-shield mr-2"></i>管理者としてログイン</span>
-                  <span class="text-xs bg-indigo-500 px-2 py-0.5 rounded">全権限</span>
-                </button>
-                <button onclick="login('leader')" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg flex items-center justify-between transition">
-                  <span><i class="fa-solid fa-user-tie mr-2"></i>チームリーダーとしてログイン</span>
-                  <span class="text-xs bg-emerald-500 px-2 py-0.5 rounded">編集可</span>
-                </button>
-                <button onclick="login('member')" class="w-full py-3 px-4 bg-slate-700 hover:bg-slate-800 text-white font-medium rounded-lg flex items-center justify-between transition">
-                  <span><i class="fa-solid fa-user mr-2"></i>一般メンバーとしてログイン</span>
-                  <span class="text-xs bg-slate-600 px-2 py-0.5 rounded">閲覧専用</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      const filteredMsgs = messages.filter(m => m.target === currentChatId);
-
-      app.innerHTML = `
-        <div class="min-h-screen flex flex-col md:flex-row">
-          <aside class="w-full md:w-64 bg-slate-900 text-white flex-shrink-0">
-            <div class="p-4 flex items-center justify-between border-b border-slate-800">
-              <div class="flex items-center space-x-2 font-bold text-lg">
-                <i class="fa-solid fa-sitemap text-indigo-400"></i>
-                <span>OrgManager</span>
-              </div>
-              <button onclick="logout()" class="text-xs text-gray-400 hover:text-white md:hidden">ログアウト</button>
-            </div>
-            <div class="p-4 border-b border-slate-800 flex items-center space-x-3">
-              <img src="${currentUser.avatar}" class="w-10 h-10 rounded-full object-cover">
-              <div>
-                <div class="font-medium text-sm">${currentUser.name}</div>
-                <div class="text-xs text-indigo-400">${currentUser.roleName}</div>
-              </div>
-            </div>
-            <nav class="p-2 space-y-1">
-              <button onclick="setTab('dashboard')" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm ${currentTab === 'dashboard' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-slate-800'}">
-                <i class="fa-solid fa-chart-line w-5"></i><span>ダッシュボード</span>
-              </button>
-              <button onclick="setTab('chat')" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm ${currentTab === 'chat' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-slate-800'}">
-                <i class="fa-solid fa-comments w-5"></i><span>チャット / 連絡</span>
-              </button>
-            </nav>
-            <div class="hidden md:block p-4 border-t border-slate-800 mt-auto">
-              <button onclick="logout()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-xs text-gray-300 rounded transition">
-                <i class="fa-solid fa-right-from-bracket mr-1"></i> ログアウト
-              </button>
-            </div>
-          </aside>
-
-          <main class="flex-1 bg-slate-50 min-h-screen p-4 md:p-6 overflow-y-auto">
-            ${currentTab === 'dashboard' ? `
-              <h2 class="text-xl font-bold mb-4">組織概要ダッシュボード</h2>
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <div class="text-xs text-gray-500 font-bold">総メンバー数</div>
-                  <div class="text-2xl font-bold text-gray-800 mt-1">24名</div>
-                </div>
-                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <div class="text-xs text-gray-500 font-bold">アクティブプロジェクト</div>
-                  <div class="text-2xl font-bold text-indigo-600 mt-1">8件</div>
-                </div>
-                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <div class="text-xs text-gray-500 font-bold">現在の権限</div>
-                  <div class="text-lg font-bold text-emerald-600 mt-1">${currentUser.roleName}</div>
-                </div>
-              </div>
-              ${currentUser.role === 'admin' ? `
-                <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 mb-4">
-                  <i class="fa-solid fa-shield-halved mr-1"></i> 管理者権限でログイン中：メンバーの追加・編集・削除が可能です。
-                </div>
-              ` : ''}
-            ` : `
-              <h2 class="text-xl font-bold mb-4">チームチャット</h2>
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-[500px]">
-                <div class="p-3 border-b bg-slate-50 font-bold text-sm"># 全社連絡チャンネル</div>
-                <div class="flex-1 p-4 overflow-y-auto space-y-3">
-                  ${filteredMsgs.map(m => {
-                    const isMe = m.senderId === currentUser.id;
-                    const sender = Object.values(DEMO_USERS).find(u => u.id === m.senderId) || { name: m.senderId, avatar: '' };
-                    return `
-                      <div class="flex ${isMe ? 'justify-end' : 'justify-start'} items-end space-x-2">
-                        ${!isMe ? `<img src="${sender.avatar}" class="w-7 h-7 rounded-full mb-1">` : ''}
-                        <div class="${isMe ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-800'} p-3 rounded-2xl max-w-[80%] text-sm">
-                          ${!isMe ? `<div class="text-[10px] opacity-75 font-bold mb-0.5">${sender.name}</div>` : ''}
-                          <div>${m.text}</div>
-                          <div class="text-[9px] text-right opacity-70 mt-1">${m.time}</div>
-                        </div>
-                      </div>
-                    `;
-                  }).join('')}
-                </div>
-                <div class="p-3 border-t flex space-x-2">
-                  <input id="chatInput" type="text" placeholder="メッセージを入力..." class="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onkeypress="if(event.key==='Enter') sendMessage()">
-                  <button onclick="sendMessage()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">送信</button>
-                </div>
-              </div>
-            `}
-          </main>
+    <div class="card">
+        <h1>マイアプリ</h1>
+        
+        <!-- 未ログイン時に表示するエリア -->
+        <div id="logged-out-view">
+            <p>Googleアカウントでログインしてください</p>
+            <button id="login-btn">Googleでログイン</button>
         </div>
-      `;
-    }
 
-    renderApp();
-  </script>
+        <!-- ログイン済みに表示するエリア -->
+        <div id="logged-in-view" class="hidden">
+            <p>ようこそ、<span id="user-name"></span> さん！</p>
+            <p style="font-size: 14px; color: #666;" id="user-email"></p>
+            <button id="logout-btn" class="logout-btn">ログアウト</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK の読み込み (ES Modules版) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // あなたのFirebase設定値（反映済み）
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhInSEErW6yQN5FK4IvqCAEeTDgT0pkO",
+            authDomain: "minato-bcb8b.firebaseapp.com",
+            projectId: "minato-bcb8b",
+            storageBucket: "minato-bcb8b.firebasestorage.app",
+            messagingSenderId: "629007046093",
+            appId: "1:629007046093:web:78249e66d71936dbae106"
+        };
+
+        // Firebaseの初期化
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        // DOM要素の取得
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const loggedOutView = document.getElementById('logged-out-view');
+        const loggedInView = document.getElementById('logged-in-view');
+        const userNameSpan = document.getElementById('user-name');
+        const userEmailP = document.getElementById('user-email');
+
+        // Googleログインボタンが押されたときの処理
+        loginBtn.addEventListener('click', () => {
+            signInWithPopup(auth, provider)
+                .then((result) => {
+                    console.log("ログイン成功:", result.user);
+                })
+                .catch((error) => {
+                    console.error("ログインエラー:", error);
+                    alert("ログインに失敗しました: " + error.message);
+                });
+        });
+
+        // ログアウトボタンが押されたときの処理
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => {
+                console.log("ログアウトしました");
+            }).catch((error) => {
+                console.error("ログアウトエラー:", error);
+            });
+        });
+
+        // ユーザーのログイン状態を常に監視して画面を切り替える
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userNameSpan.textContent = user.displayName;
+                userEmailP.textContent = user.email;
+                loggedOutView.classList.add('hidden');
+                loggedInView.classList.remove('hidden');
+            } else {
+                loggedOutView.classList.remove('hidden');
+                loggedInView.classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 </html>
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Node.js / ビルド関連
-node_modules/
-.next/
-dist/
-.env.local
-.e
