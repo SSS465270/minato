@@ -316,16 +316,6 @@
             opacity: 0.9;
             line-height: 1.5;
         }
-        .notice-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 12px;
-            padding-top: 8px;
-            border-top: 1px dashed var(--border-color);
-            font-size: 12px;
-            opacity: 0.7;
-        }
 
         .member-grid {
             display: grid;
@@ -400,13 +390,6 @@
             padding: 2px 6px;
             border-radius: 4px;
         }
-        .badge-member {
-            background-color: #f3f4f6;
-            color: #4b5563;
-            font-size: 11px;
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
     </style>
 </head>
 <body>
@@ -416,13 +399,10 @@
         <div class="login-card">
             <h2>🏢 組織ポータル ログイン</h2>
             <p style="font-size: 13px; margin-bottom: 15px; opacity: 0.7;">認証情報を入力してください</p>
-            <input type="text" id="username" placeholder="ユーザーID (admin)">
-            <input type="password" id="password" placeholder="パスワード (secret123)">
+            <input type="text" id="username" placeholder="ユーザーID (admin または登録ID)">
+            <input type="password" id="password" placeholder="パスワード">
             <button id="login-btn" style="width: 100%; margin-top: 10px;">ログイン</button>
             <div id="error-msg" class="error"></div>
-            <div style="text-align: center; margin-top: 15px;">
-                <a href="index.html" style="font-size: 12px; color: var(--primary-color); text-decoration: none;">← トップへ戻る</a>
-            </div>
         </div>
     </div>
 
@@ -437,14 +417,11 @@
         <aside id="sidebar">
             <div>
                 <div class="sidebar-header">
-                    <h2>🏢 特別関連情報捜査員</h2>
+                    <h2>🏢 特別関連情報捜査員ポータル</h2>
                     <div id="user-info-display" style="font-size: 12px; opacity: 0.8; margin-top: 4px;"></div>
                 </div>
                 <ul class="sidebar-menu">
-                    <li class="active" data-target="section-home">
-                        <span>🏠 ホーム（お知らせ）</span>
-                        <span id="home-badge" class="badge-new hidden">NEW</span>
-                    </li>
+                    <li class="active" data-target="section-home">🏠 ホーム（お知らせ）</li>
                     <li data-target="section-members" id="menu-members" class="hidden">👥 メンバー一覧</li>
                     <li data-target="section-chat" id="menu-chat">💬 チーム掲示板</li>
                     <li data-target="section-admin" id="menu-admin" class="hidden">🔑 アカウント管理</li>
@@ -473,7 +450,7 @@
 
             <section id="section-members" class="content-section">
                 <div class="card">
-                    <h2>👥 メンバー一覧 & アカウント管理</h2>
+                    <h2>👥 メンバー一覧</h2>
                     <div class="member-grid" id="member-grid"></div>
                 </div>
             </section>
@@ -492,9 +469,9 @@
             <section id="section-admin" class="content-section">
                 <div class="card" style="border: 2px dashed #93c5fd; background: var(--member-bg);">
                     <h2 style="color: var(--primary-color);">🔑 新規メンバーアカウント発行</h2>
-                    <input type="text" id="new-username" placeholder="新しいユーザーID">
+                    <input type="text" id="new-username" placeholder="新しいユーザーID (半角英数)">
                     <input type="password" id="new-password" placeholder="初期パスワード">
-                    <input type="text" id="new-displayname" placeholder="表示名">
+                    <input type="text" id="new-displayname" placeholder="表示名 (例: 山田 太郎)">
                     <button id="add-user-btn" style="margin-top: 4px;">アカウント作成</button>
                     <div id="add-user-msg" style="margin-top: 8px;"></div>
                 </div>
@@ -504,9 +481,9 @@
                 <div class="card">
                     <h2>⚙️ プロフィール設定</h2>
                     <input type="text" id="my-displayname" placeholder="新しい表示名">
-                    <input type="password" id="my-password" placeholder="新しいパスワード">
+                    <input type="password" id="my-password" placeholder="新しいパスワード (変更する場合のみ)">
                     <button id="update-my-profile-btn" style="margin-top: 4px;">保存する</button>
-                    <div id="my-profile-msg"></div>
+                    <div id="my-profile-msg" style="margin-top: 8px;"></div>
                 </div>
             </section>
         </main>
@@ -550,7 +527,6 @@
         const userInfoDisplay = document.getElementById('user-info-display');
         const menuAdmin = document.getElementById('menu-admin');
         const menuMembers = document.getElementById('menu-members');
-        const homeBadge = document.getElementById('home-badge');
 
         const memberGrid = document.getElementById('member-grid');
         const chatBox = document.getElementById('chat-box');
@@ -561,14 +537,19 @@
         const postNoticeBtn = document.getElementById('post-notice-btn');
         const noticeFeed = document.getElementById('notice-feed');
 
-        // 新規メンバー追加用の要素
+        // 新規メンバー追加用
         const newUsernameInput = document.getElementById('new-username');
         const newPasswordInput = document.getElementById('new-password');
         const newDisplaynameInput = document.getElementById('new-displayname');
         const addUserBtn = document.getElementById('add-user-btn');
         const addUserMsg = document.getElementById('add-user-msg');
 
-        // メニュー切り替え
+        // プロフィール設定用
+        const myDisplaynameInput = document.getElementById('my-displayname');
+        const myPasswordInput = document.getElementById('my-password');
+        const updateMyProfileBtn = document.getElementById('update-my-profile-btn');
+        const myProfileMsg = document.getElementById('my-profile-msg');
+
         document.querySelectorAll('.sidebar-menu li').forEach(item => {
             item.addEventListener('click', () => {
                 document.querySelectorAll('.sidebar-menu li').forEach(i => i.classList.remove('active'));
@@ -593,16 +574,22 @@
             }
         });
 
-        // ログイン処理
+        // ログイン処理（管理者＋Firestore登録ユーザー対応）
         loginBtn.addEventListener('click', handleLogin);
         passwordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleLogin();
         });
 
-        function handleLogin() {
+        async function handleLogin() {
             const id = usernameInput.value.trim();
             const pass = passwordInput.value.trim();
 
+            if (!id || !pass) {
+                errorMsg.textContent = 'IDとパスワードを入力してください。';
+                return;
+            }
+
+            // デフォルト管理者チェック
             if (id === DEFAULT_ADMIN_ID && pass === DEFAULT_ADMIN_RAW_PASS) {
                 const adminUser = { id: "admin", name: "管理者", role: "admin" };
                 setCurrentUser(adminUser);
@@ -611,7 +598,24 @@
                 return;
             }
 
-            errorMsg.textContent = 'IDまたはパスワードが間違っています。';
+            // Firestoreから一般ユーザーを検索してログイン
+            try {
+                const { doc, getDoc } = window.fb;
+                const userDoc = await getDoc(doc(window.db, "users", id));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    if (userData.password === pass) {
+                        setCurrentUser({ id: userData.id, name: userData.name, role: userData.role || 'member' });
+                        errorMsg.textContent = '';
+                        showApp();
+                        return;
+                    }
+                }
+                errorMsg.textContent = 'IDまたはパスワードが間違っています。';
+            } catch (err) {
+                console.error("ログインエラー:", err);
+                errorMsg.textContent = 'ログイン処理中にエラーが発生しました。';
+            }
         }
 
         logoutBtn.addEventListener('click', () => {
@@ -627,14 +631,20 @@
             appContainer.classList.remove('hidden');
             mobileHeader.classList.remove('hidden');
 
-            document.getElementById('my-displayname').value = currentUser.name;
+            myDisplaynameInput.value = currentUser.name;
+            myPasswordInput.value = '';
 
             if (currentUser.role === 'admin') {
                 menuAdmin.classList.remove('hidden');
                 menuMembers.classList.remove('hidden');
                 userInfoDisplay.innerHTML = `${escapeHtml(currentUser.name)} <span class="badge-admin">管理者</span>`;
-                listenMembers();
+            } else {
+                menuAdmin.classList.add('hidden');
+                menuMembers.classList.add('hidden');
+                userInfoDisplay.innerHTML = `${escapeHtml(currentUser.name)} <span style="font-size:11px; opacity:0.7;">メンバー</span>`;
             }
+
+            listenMembers();
             listenChats();
             listenNotices();
         }
@@ -645,7 +655,7 @@
             loginContainer.classList.remove('hidden');
         }
 
-        // 新規メンバーアカウント作成処理
+        // 新規メンバー追加処理 (管理者用)
         addUserBtn.addEventListener('click', async () => {
             const newId = newUsernameInput.value.trim();
             const newPass = newPasswordInput.value.trim();
@@ -661,7 +671,7 @@
                 const { doc, setDoc } = window.fb;
                 await setDoc(doc(window.db, "users", newId), {
                     id: newId,
-                    password: newPass, // 平文または管理用
+                    password: newPass,
                     name: newName,
                     role: "member",
                     createdAt: Date.now()
@@ -678,14 +688,51 @@
             }
         });
 
-        document.getElementById('update-my-profile-btn').addEventListener('click', () => {
-            const newName = document.getElementById('my-displayname').value.trim();
-            if (!newName) return;
+        // プロフィール & パスワード更新処理
+        updateMyProfileBtn.addEventListener('click', async () => {
+            const newName = myDisplaynameInput.value.trim();
+            const newPass = myPasswordInput.value.trim();
             const currentUser = getCurrentUser();
-            currentUser.name = newName;
-            setCurrentUser(currentUser);
-            document.getElementById('my-profile-msg').textContent = '更新しました！';
-            showApp();
+
+            if (!newName) {
+                myProfileMsg.className = 'error';
+                myProfileMsg.textContent = '表示名は空にできません。';
+                return;
+            }
+
+            try {
+                const { doc, getDoc, setDoc } = window.fb;
+                // デフォルト管理者の場合
+                if (currentUser.id === 'admin') {
+                    currentUser.name = newName;
+                    setCurrentUser(currentUser);
+                    myProfileMsg.className = 'success';
+                    myProfileMsg.textContent = 'プロフィールを更新しました！';
+                    showApp();
+                    return;
+                }
+
+                // Firestoreユーザーの場合
+                const userRef = doc(window.db, "users", currentUser.id);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    const updateData = { name: newName };
+                    if (newPass) {
+                        updateData.password = newPass;
+                    }
+                    await setDoc(userRef, updateData, { merge: true });
+                    currentUser.name = newName;
+                    setCurrentUser(currentUser);
+                    myProfileMsg.className = 'success';
+                    myProfileMsg.textContent = newPass ? 'プロフィールとパスワードを更新しました！' : 'プロフィールを更新しました！';
+                    myPasswordInput.value = '';
+                    showApp();
+                }
+            } catch (err) {
+                console.error("プロフィール更新エラー:", err);
+                myProfileMsg.className = 'error';
+                myProfileMsg.textContent = '更新に失敗しました。';
+            }
         });
 
         function listenMembers() {
@@ -699,16 +746,41 @@
 
         function renderMembers(users) {
             memberGrid.innerHTML = '';
+            const currentUser = getCurrentUser();
             users.forEach(u => {
                 const card = document.createElement('div');
                 card.className = 'member-card';
+                
+                let actionHtml = '';
+                // 管理者は自分以外のメンバーを削除可能
+                if (currentUser && currentUser.role === 'admin' && u.id !== 'admin') {
+                    actionHtml = `
+                        <div class="member-actions">
+                            <button class="btn-danger btn-small" onclick="deleteUser('${u.id}')">削除</button>
+                        </div>
+                    `;
+                }
+
                 card.innerHTML = `
                     <div class="member-name">${escapeHtml(u.name)}</div>
                     <div class="member-role">${u.role === 'admin' ? '管理者' : '一般メンバー'} (@${escapeHtml(u.id)})</div>
+                    ${actionHtml}
                 `;
                 memberGrid.appendChild(card);
             });
         }
+
+        // メンバー削除関数（グローバルスコープに配置）
+        window.deleteUser = async function(userId) {
+            if (!confirm(`ユーザー「@${userId}」を削除してもよろしいですか？`)) return;
+            try {
+                const { doc, deleteDoc } = window.fb;
+                await deleteDoc(doc(window.db, "users", userId));
+            } catch (err) {
+                console.error("メンバー削除エラー:", err);
+                alert('メンバーの削除に失敗しました。');
+            }
+        };
 
         function listenNotices() {
             const { collection, query, orderBy, onSnapshot } = window.fb;
