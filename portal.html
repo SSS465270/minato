@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>組織ポータルアプリ</title>
+    <style>
+        /* ライトモード（デフォルト）のカラー変数 */
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-color: #0f172a;
+            --border-color: #e2e8f0;
+            --sidebar-bg: #ffffff;
+            --member-bg: #f8fafc;
+            --chat-bg: #f8fafc;
+        }
+
+        /* ダークモードのカラー変数 */
+        [data-theme="dark"] {
+            --primary-color: #3b82f6;
+            --primary-hover: #60a5fa;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --border-color: #334155;
+            --sidebar-bg: #1e293b;
+            --member-bg: #0f172a;
+            --chat-bg: #0f172a;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* ログイン画面のスタイル */
+        .login-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .login-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 350px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* メインアプリのレイアウト（サイドバー形式） */
+        .app-layout {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        aside {
+            width: 250px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        .sidebar-header h2 {
+            font-size: 18px;
+            margin: 0 0 5px 0;
+            color: var(--primary-color);
+        }
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0 0 0;
+            flex: 1;
+        }
+        .sidebar-menu li {
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-color);
+            opacity: 0.8;
+            transition: background 0.2s, color 0.2s, opacity 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .sidebar-menu li:hover {
+            background: var(--border-color);
+            opacity: 1;
+        }
+        .sidebar-menu li.active {
+            background: var(--primary-color);
+            color: #ffffff;
+            opacity: 1;
+            font-weight: bold;
+        }
+        .sidebar-footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        main {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background: var(--bg-color);
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+
+        /* 未読バッジのスタイル */
+        .badge-new {
+            background-color: #ef4444;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        /* 共通カード・UIスタイル */
+        .card {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+            margin-bottom: 20px;
+        }
+        h2, h3 {
+            margin-top: 0;
+            color: var(--text-color);
+        }
+        p {
+            color: var(--text-color);
+            opacity: 0.9;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin: 6px 0 12px 0;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+        .btn-danger {
+            background-color: #ef4444;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+        .btn-secondary {
+            background-color: #64748b;
+        }
+        .btn-secondary:hover {
+            background-color: #475569;
+        }
+        .error {
+            color: #ef4444;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+        .success {
+            color: #10b981;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+        .hidden {
+            display: none !important;
+        }
+
+        /* お知らせ投稿スタイル */
+        .notice-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .notice-card {
+            background: var(--member-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            position: relative;
+        }
+        .notice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .notice-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 0;
+        }
+        .notice-meta {
+            font-size: 11px;
+            opacity: 0.6;
+        }
+        .notice-body {
+            font-size: 14px;
+            white-space: pre-wrap;
+            margin: 0;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+        .notice-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border-color);
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        /* メンバーグリッド */
+        .member-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .member-card {
+            background: var(--member-bg);
+            padding: 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .member-name {
+            font-weight: bold;
+            font-size: 15px;
+            color: var(--text-color);
+        }
+        .member-role {
+            font-size: 12px;
+            color: var(--text-color);
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+        .member-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        /* チャット */
+        .chat-box {
+            height: 400px;
+            overflow-y: auto;
+            background: var(--chat-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+        .chat-message {
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+        .chat-user {
+            font-weight: bold;
+            font-size: 13px;
+            color: var(--primary-color);
+        }
+        .chat-time {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-left: 6px;
+        }
+        .chat-text {
+            font-size: 14px;
+            margin-top: 4px;
+            color: var(--text-color);
+        }
+        .chat-form {
+            display: flex;
+            gap: 8px;
+        }
+        .chat-form input {
+            margin: 0;
+        }
+
+        .badge-admin {
+            background-color: #dbeafe;
+            color: #1e40af;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .badge-member {
+            background-color: #f3f4f6;
+            color: #4b5563;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ログイン画面 -->
+    <div id="login-container" class="login-wrapper">
+        <div class="login-card">
+            <h2>🏢 組織ポータル ログイン</h2>
+            <p style="font-size: 13px; margin-bottom: 15px; opacity: 0.7;">認証情報を入力してください</p>
+            <input type="text" id="username" placeholder="ユーザーID">
+            <input type="password" id="password" placeholder="パスワード">
+            <button id="login-btn" style="width: 100%; margin-top: 10px;">ログイン</button>
+            <div id="error-msg" class="error"></div>
+            <div style="text-align: center; margin-top: 15px;">
+                <a href="index.html" style="font-size: 12px; color: var(--primary-color); text-decoration: none;">← 日本文化紹介トップへ戻る</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインアプリ画面（サイドバー構成） -->
+    <div id="app-container" class="app-layout hidden">
+        <!-- サイドバーナビゲーション -->
+        <aside>
+            <div>
+                <div class="sidebar-header">
+                    <h2>🏢 組織ポータル</h2>
+                    <div id="user-info-display" style="font-size: 12px; opacity: 0.8; margin-top: 4px;"></div>
+                </div>
+                <ul class="sidebar-menu">
+                    <li class="active" data-target="section-home">
+                        <span>🏠 ホーム（お知らせ）</span>
+                        <span id="home-badge" class="badge-new hidden">NEW</span>
+                    </li>
+                    <!-- メンバー一覧は管理者のみ表示 -->
+                    <li data-target="section-members" id="menu-members" class="hidden">👥 メンバー一覧</li>
+                    <li data-target="section-chat" id="menu-chat">💬 チーム掲示板</li>
+                    <li data-target="section-admin" id="menu-admin" class="hidden">🔑 アカウント管理</li>
+                    <li data-target="section-settings">⚙️ プロフィール設定</li>
+                </ul>
+            </div>
+            <div class="sidebar-footer">
+                <button id="theme-toggle-btn" class="btn-secondary btn-small" style="width: 100%; padding: 8px;">🌙 ダークモードにする</button>
+                <button id="logout-btn" class="btn-danger btn-small" style="width: 100%; padding: 8px;">ログアウト</button>
+            </div>
+        </aside>
+
+        <!-- メインコンテンツ表示エリア -->
+        <main>
+            <!-- 1. ホームセクション -->
+            <section id="section-home" class="content-section active">
+                <div class="card">
+                    <h2>📌 新規お知らせ投稿</h2>
+                    <p style="font-size: 13px;">タイトルと内容を入力してメンバー全員にお知らせを送信できます。</p>
+                    <input type="text" id="notice-title-input" placeholder="お知らせのタイトル（例: 週次ミーティングの件）">
+                    <textarea id="notice-content-input" placeholder="内容を入力..."></textarea>
+                    <button id="post-notice-btn">お知らせを送信</button>
+                </div>
+
+                <div class="card">
+                    <h2>📢 組織からの通知一覧</h2>
+                    <div class="notice-feed" id="notice-feed"></div>
+                </div>
+            </section>
+
+            <!-- 2. メンバー一覧セクション（管理者限定） -->
+            <section id="section-members" class="content-section">
+                <div class="card">
+                    <h2>👥 メンバー一覧 & アカウント管理</h2>
+                    <p style="font-size: 13px; opacity: 0.8;">登録されているメンバーの一覧です。パスワードの再設定やアカウントの削除を行えます。</p>
+                    <div class="member-grid" id="member-grid"></div>
+                </div>
+            </section>
+
+            <!-- 3. チャットセクション -->
+            <section id="section-chat" class="content-section">
+                <div class="card">
+                    <h2>💬 チーム掲示板 (チャット)</h2>
+                    <div class="chat-box" id="chat-box"></div>
+                    <div class="chat-form">
+                        <input type="text" id="chat-input" placeholder="メッセージを入力...">
+                        <button id="send-chat-btn">送信</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. 管理者専用セクション -->
+            <section id="section-admin" class="content-section">
+                <div class="card" style="border: 2px dashed #93c5fd; background: var(--member-bg);">
+                    <h2 style="color: var(--primary-color);">🔑 新規メンバーアカウント発行</h2>
+                    <p style="font-size: 13px;">新しい一般メンバーのアカウントを作成できます。</p>
+                    <input type="text" id="new-username" placeholder="新しいユーザーID">
+                    <input type="password" id="new-password" placeholder="初期パスワード">
+                    <input type="text" id="new-displayname" placeholder="表示名（例: 山田太郎）">
+                    <button id="add-user-btn" style="margin-top: 4px;">アカウント作成</button>
+                    <div id="add-user-msg"></div>
+                </div>
+            </section>
+
+            <!-- 5. プロフィール設定セクション -->
+            <section id="section-settings" class="content-section">
+                <div class="card">
+                    <h2>⚙️ プロフィール設定</h2>
+                    <p style="font-size: 13px;">自分の表示名やパスワードを変更できます。</p>
+                    <input type="text" id="my-displayname" placeholder="新しい表示名">
+                    <input type="password" id="my-password" placeholder="新しいパスワード（変更する場合のみ）">
+                    <button id="update-my-profile-btn" style="margin-top: 4px;">保存する</button>
+                    <div id="my-profile-msg"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // テーマ初期化
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeToggleBtn.textContent = '☀️ ライトモードにする';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                themeToggleBtn.textContent = '🌙 ダークモードにする';
+            }
+        }
+        const savedTheme = localStorage.getItem('org_theme') || 'light';
+        applyTheme(savedTheme);
+
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('org_theme', newTheme);
+            applyTheme(newTheme);
+        });
+
+        // ハッシュ化関数
+        function hashPassword(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            const hex = Math.abs(hash).toString(16);
+            return "hash_" + hex + "_" + str.length * 7;
+        }
+
+        const DEFAULT_ADMIN_ID = "admin";
+        const DEFAULT_ADMIN_RAW_PASS = "secret123";
+
+        // DOM要素
+        const loginContainer = document.getElementById('login-container');
+        const appContainer = document.getElementById('app-container');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const errorMsg = document.getElementById('error-msg');
+        const userInfoDisplay = document.getElementById('user-info-display');
+        const menuAdmin = document.getElementById('menu-admin');
+        const menuMembers = document.getElementById('menu-members');
+        const homeBadge = document.getElementById('home-badge');
+
+        const myDisplayname = document.getElementById('my-displayname');
+        const myPassword = document.getElementById('my-password');
+        const updateMyProfileBtn = document.getElementById('update-my-profile-btn');
+        const myProfileMsg = document.getElementById('my-profile-msg');
+
+        const newUsername = document.getElementById('new-username');
+        const newPassword = document.getElementById('new-password');
+        const newDisplayname = document.getElementById('new-displayname');
+        const addUserBtn = document.getElementById('add-user-btn');
+        const addUserMsg = document.getElementById('add-user-msg');
+
+        const memberGrid = document.getElementById('member-grid');
+        const chatBox = document.getElementById('chat-box');
+        const chatInput = document.getElementById('chat-input');
+        const sendChatBtn = document.getElementById('send-chat-btn');
+
+        const noticeTitleInput = document.getElementById('notice-title-input');
+        const noticeContentInput = document.getElementById('notice-content-input');
+        const postNoticeBtn = document.getElementById('post-notice-btn');
+        const noticeFeed = document.getElementById('notice-feed');
+
+        // サイドバータブ切り替え
+        const menuItems = document.querySelectorAll('.sidebar-menu li');
+        const contentSections = document.querySelectorAll('.content-section');
+
+        menuItems.forEach(item => {
+            item.addEventListener('click', () => {
+                menuItems.forEach(i => i.classList.remove('active'));
+                contentSections.forEach(s => s.classList.remove('active'));
+
+                item.classList.add('active');
+                const targetId = item.getAttribute('data-target');
+                document.getElementById(targetId).classList.add('active');
+
+                if (targetId === 'section-home') {
+                    const notices = JSON.parse(localStorage.getItem('org_notices') || '[]');
+                    if (notices.length > 0) {
+                        const latestNotice = notices[notices.length - 1];
+                        localStorage.setItem('org_last_read_notice', latestNotice.timestamp || 0);
+                    } else {
+                        localStorage.setItem('org_last_read_notice', Date.now());
+                    }
+                    checkUnreadNotices();
+                }
+            });
+        });
+
+        function checkUnreadNotices() {
+            const notices = JSON.parse(localStorage.getItem('org_notices') || '[]');
+            if (notices.length === 0) {
+                homeBadge.classList.add('hidden');
+                return;
+            }
+
+            const lastRead = Number(localStorage.getItem('org_last_read_notice') || 0);
+            const latestNotice = notices[notices.length - 1];
+
+            if (latestNotice.timestamp > lastRead) {
+                homeBadge.classList.remove('hidden');
+            } else {
+                homeBadge.classList.add('hidden');
+            }
+        }
+
+        function getUsers() {
+            let users = JSON.parse(localStorage.getItem('org_users') || '[]');
+            if (users.length === 0) {
+                const hashedPass = hashPassword(DEFAULT_ADMIN_RAW_PASS);
+                users.push({
+                    id: DEFAULT_ADMIN_ID,
+                    passHash: hashedPass,
+                    name: "管理者",
+                    role: "admin"
+                });
+                localStorage.setItem('org_users', JSON.stringify(users));
+            }
+            return users;
+        }
+
+        function saveUsers(users) {
+            localStorage.setItem('org_users', JSON.stringify(users));
+        }
+
+        function getCurrentUser() {
+            return JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+        }
+
+        function setCurrentUser(user) {
+            sessionStorage.setItem('currentUser', JSON.stringify(user));
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const users = getUsers();
+            const adminUser = users.find(u => u.id === DEFAULT_ADMIN_ID);
+            if (!adminUser || !adminUser.passHash.startsWith('hash_')) {
+                localStorage.removeItem('org_users');
+                getUsers();
+            }
+
+            if (getCurrentUser()) {
+                showApp();
+            }
+        });
+
+        loginBtn.addEventListener('click', handleLogin);
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+
+        function handleLogin() {
+            const id = usernameInput.value.trim();
+            const pass = passwordInput.value.trim();
+            const users = getUsers();
+
+            const inputHash = hashPassword(pass);
+            const targetUser = users.find(u => u.id === id && u.passHash === inputHash);
+
+            if (targetUser) {
+                setCurrentUser(targetUser);
+                errorMsg.textContent = '';
+                showApp();
+            } else {
+                errorMsg.textContent = 'IDまたはパスワードが間違っています。';
+            }
+        }
+
+        logoutBtn.addEventListener('click', () => {
+            sessionStorage.removeItem('currentUser');
+            usernameInput.value = '';
+            passwordInput.value = '';
+            showLogin();
+        });
+
+        function showApp() {
+            const currentUser = getCurrentUser();
+            loginContainer.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+
+            myDisplayname.value = currentUser.name;
+            myPassword.value = '';
+
+            if (currentUser.role === 'admin') {
+                menuAdmin.classList.remove('hidden');
+                menuMembers.classList.remove('hidden');
+                userInfoDisplay.innerHTML = `${escapeHtml(currentUser.name)} <span class="badge-admin">管理者</span>`;
+                renderMembers();
+            } else {
+                menuAdmin.classList.add('hidden');
+                menuMembers.classList.add('hidden');
+                userInfoDisplay.innerHTML = `${escapeHtml(currentUser.name)} <span class="badge-member">一般メンバー</span>`;
+                
+                document.querySelectorAll('.sidebar-menu li').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+                document.querySelector('[data-target="section-home"]').classList.add('active');
+                document.getElementById('section-home').classList.add('active');
+            }
+
+            loadChats();
+            loadNotices();
+        }
+
+        function showLogin() {
+            appContainer.classList.add('hidden');
+            loginContainer.classList.remove('hidden');
+        }
+
+        updateMyProfileBtn.addEventListener('click', () => {
+            const currentUser = getCurrentUser();
+            const newName = myDisplayname.value.trim();
+            const newPass = myPassword.value.trim();
+
+            if (!newName) {
+                myProfileMsg.className = 'error';
+                myProfileMsg.textContent = '表示名を入力してください。';
+                return;
+            }
+
+            const users = getUsers();
+            const userIdx = users.findIndex(u => u.id === currentUser.id);
+
+            if (userIdx !== -1) {
+                users[userIdx].name = newName;
+                if (newPass) {
+                    users[userIdx].passHash = hashPassword(newPass);
+                }
+                saveUsers(users);
+                setCurrentUser(users[userIdx]);
+
+                myProfileMsg.className = 'success';
+                myProfileMsg.textContent = 'プロフィールを更新しました！';
+                myPassword.value = '';
+                showApp();
+            }
+        });
+
+        addUserBtn.addEventListener('click', () => {
+            const id = newUsername.value.trim();
+            const pass = newPassword.value.trim();
+            const name = newDisplayname.value.trim();
+
+            if (!id || !pass || !name) {
+                addUserMsg.className = 'error';
+                addUserMsg.textContent = 'すべての項目を入力してください。';
+                return;
+            }
+
+            const users = getUsers();
+            if (users.some(u => u.id === id)) {
+                addUserMsg.className = 'error';
+                addUserMsg.textContent = 'そのIDはすでに使用されています。';
+                return;
+            }
+
+            const passHash = hashPassword(pass);
+            users.push({ id, passHash, name, role: 'member' });
+            saveUsers(users);
+
+            addUserMsg.className = 'success';
+            addUserMsg.textContent = `アカウント「${name}」を作成しました！`;
+            newUsername.value = '';
+            newPassword.value = '';
+            newDisplayname.value = '';
+            renderMembers();
+        });
+
+        function renderMembers() {
+            const users = getUsers();
+            const currentUser = getCurrentUser();
+            memberGrid.innerHTML = '';
+
+            users.forEach(u => {
+                const card = document.createElement('div');
+                card.className = 'member-card';
+
+                let actionBtns = '';
+                if (currentUser.role === 'admin' && u.id !== currentUser.id) {
+                    actionBtns = `
+                        <div class="member-actions">
+                            <button class="btn-small btn-secondary" onclick="editUserPrompt('${u.id}')">パスワード変更</button>
+                            <button class="btn-small btn-danger" onclick="deleteUser('${u.id}')">削除</button>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="member-name">${escapeHtml(u.name)}</div>
+                    <div class="member-role">${u.role === 'admin' ? '管理者' : '一般メンバー'} (@${escapeHtml(u.id)})</div>
+                    ${actionBtns}
+                `;
+                memberGrid.appendChild(card);
+            });
+        }
+
+        window.editUserPrompt = function(targetId) {
+            const users = getUsers();
+            const user = users.find(u => u.id === targetId);
+            if (!user) return;
+
+            const newPass = prompt(`「${user.id}」の新しいパスワードを入力してください:`);
+            if (newPass === null || !newPass.trim()) return;
+
+            user.passHash = hashPassword(newPass.trim());
+            saveUsers(users);
+            alert(`「${user.id}」のパスワードを更新しました。`);
+        };
+
+        window.deleteUser = function(targetId) {
+            if (!confirm(`ユーザー「${targetId}」を削除しますか？`)) return;
+            let users = getUsers();
+            users = users.filter(u => u.id !== targetId);
+            saveUsers(users);
+            renderMembers();
+        };
+
+        // お知らせ機能
+        function loadNotices() {
+            const notices = JSON.parse(localStorage.getItem('org_notices') || '[]');
+            renderNotices(notices);
+            checkUnreadNotices();
+        }
+
+        function renderNotices(notices) {
+            noticeFeed.innerHTML = '';
+            if (notices.length === 0) {
+                noticeFeed.innerHTML = '<div style="color: var(--text-color); opacity: 0.5; font-size: 13px; text-align: center; padding: 20px;">まだお知らせはありません</div>';
+                return;
+            }
+
+            notices.slice().reverse().forEach((notice, index) => {
+                const actualIndex = notices.length - 1 - index;
+                const card = document.createElement('div');
+                card.className = 'notice-card';
+                card.innerHTML = `
+                    <div class="notice-header">
+                        <h3 class="notice-title">${escapeHtml(notice.title)}</h3>
+                        <span class="notice-meta">${notice.time}</span>
+                    </div>
+                    <p class="notice-body">${escapeHtml(notice.content)}</p>
+                    <div class="notice-footer">
+                        <span>投稿者: <strong>${escapeHtml(notice.author)}</strong></span>
+                        <button class="btn-small btn-danger" onclick="deleteNotice(${actualIndex})">削除</button>
+                    </div>
+                `;
+                noticeFeed.appendChild(card);
+            });
+        }
+
+        postNoticeBtn.addEventListener('click', () => {
+            const title = noticeTitleInput.value.trim();
+            const content = noticeContentInput.value.trim();
+
+            if (!title || !content) {
+                alert('タイトルと内容の両方を入力してください。');
+                return;
+            }
+
+            const currentUser = getCurrentUser();
+            const notices = JSON.parse(localStorage.getItem('org_notices') || '[]');
+            
+            const now = new Date();
+            const timeStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            notices.push({
+                title: title,
+                content: content,
+                author: currentUser ? currentUser.name : "管理者",
+                time: timeStr,
+                timestamp: Date.now()
+            });
+
+            localStorage.setItem('org_notices', JSON.stringify(notices));
+            noticeTitleInput.value = '';
+            noticeContentInput.value = '';
+            loadNotices();
+        });
+
+        window.deleteNotice = function(index) {
+            if (!confirm('このお知らせを削除しますか？')) return;
+            let notices = JSON.parse(localStorage.getItem('org_notices') || '[]');
+            notices.splice(index, 1);
+            localStorage.setItem('org_notices', JSON.stringify(notices));
+            loadNotices();
+        };
+
+        // チャット機能
+        function loadChats() {
+            const chats = JSON.parse(localStorage.getItem('org_chats') || '[]');
+            renderChats(chats);
+        }
+
+        function renderChats(chats) {
+            chatBox.innerHTML = '';
+            if (chats.length === 0) {
+                chatBox.innerHTML = '<div style="color: var(--text-color); opacity: 0.5; font-size: 13px; text-align: center;">まだメッセージはありません</div>';
+                return;
+            }
+            chats.forEach(chat => {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'chat-message';
+                msgDiv.innerHTML = `
+                    <div>
+                        <span class="chat-user">${escapeHtml(chat.user)}</span>
+                        <span class="chat-time">${chat.time}</span>
+                    </div>
+                    <div class="chat-text">${escapeHtml(chat.text)}</div>
+                `;
+                chatBox.appendChild(msgDiv);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        sendChatBtn.addEventListener('click', sendChat);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChat();
+        });
+
+        function sendChat() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            const currentUser = getCurrentUser();
+            const chats = JSON.parse(localStorage.getItem('org_chats') || '[]');
+            const now = new Date();
+            const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            chats.push({
+                user: currentUser ? currentUser.name : "ゲスト",
+                text: text,
+                time: timeStr
+            });
+
+            localStorage.setItem('org_chats', JSON.stringify(chats));
+            renderChats(chats);
+            chatInput.value = '';
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>

@@ -1,132 +1,204 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Googleログイン連携アプリ</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            text-align: center;
-            margin-top: 100px;
-            background-color: #f7f9fa;
-            color: #333;
-        }
-        .card {
-            background: white;
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        button {
-            background-color: #4285F4;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-        button:hover {
-            background-color: #3367d6;
-        }
-        .logout-btn {
-            background-color: #e0e0e0;
-            color: #333;
-            margin-top: 15px;
-        }
-        .logout-btn:hover {
-            background-color: #d0d0d0;
-        }
-        .hidden {
-            display: none;
-        }
-    </style>
+  <meta charset="utf-8">
+  <title>ようこそ日本文化へ</title>
+
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
-    <div class="card">
-        <h1>マイアプリ</h1>
-        
-        <!-- 未ログイン時に表示するエリア -->
-        <div id="logged-out-view">
-            <p>Googleアカウントでログインしてください</p>
-            <button id="login-btn">Googleでログイン</button>
-        </div>
+<!-- ① 表紙（ウェルカム画面） -->
+<header class="hero">
+  <div class="lang-switch-header">
+    <button id="btn-ja" class="lang-btn active" onclick="switchLanguage('ja')">JP</button>
+    <span class="lang-divider">|</span>
+    <button id="btn-en" class="lang-btn" onclick="switchLanguage('en')">EN</button>
+  </div>
 
-        <!-- ログイン済みに表示するエリア -->
-        <div id="logged-in-view" class="hidden">
-            <p>ようこそ、<span id="user-name"></span> さん！</p>
-            <p style="font-size: 14px; color: #666;" id="user-email"></p>
-            <button id="logout-btn" class="logout-btn">ログアウト</button>
-        </div>
-    </div>
+  <div class="hero-content">
+    <h1>
+      <span class="lang-ja">ようこそ日本文化へ</span>
+      <span class="lang-en" style="display: none;">Welcome to Japanese Culture</span>
+    </h1>
+    <p class="lang-ja">日本の伝統工芸が織りなす、美と技の世界へようこそ</p>
+    <p class="lang-en" style="display: none;">Welcome to the world of beauty and craftsmanship in traditional Japanese arts.</p>
+    
+    <a href="#select-section" class="scroll-btn">
+      <span class="lang-ja">↓ 伝統工芸を選ぶ</span>
+      <span class="lang-en" style="display: none;">↓ Explore Crafts</span>
+    </a>
+  </div>
+</header>
 
-    <!-- Firebase SDK の読み込み (ES Modules版) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+<!-- ② 選択画面（別ページへ飛ぶ4つのカード） -->
+<section id="select-section" class="select-container">
+  <h2>
+    <span class="lang-ja">伝統工芸を選ぶ</span>
+    <span class="lang-en" style="display: none;">Select a Craft</span>
+  </h2>
+  <p class="select-lead">
+    <span class="lang-ja">知りたい工芸品を選択してください（専用ページへ移動します）</span>
+    <span class="lang-en" style="display: none;">Choose a craft to view its detail page.</span>
+  </p>
 
-        // あなたのFirebase設定値（反映済み）
-     const firebaseConfig = {
-    apiKey: "AIzaSyBhInSEErW6yQN5FK4IvqCAEeTDgT0pkO",
-    authDomain: "minato-bcb8b.firebaseapp.com",
-    projectId: "minato-bcb8b",
-    storageBucket: "minato-bcb8b.firebasestorage.app",
-    messagingSenderId: "629007046093",
-    appId: "1:629007046093:web:78249e66d71936dbae106"
-};
+  <div class="card-grid">
+    <!-- 1. 寄木細工 -->
+    <a href="yosegi.html" class="card">
+      <div class="card-img-wrapper">
+        <img src="yosegi.jpeg" alt="寄木細工">
+      </div>
+      <div class="card-body">
+        <h3>
+          <span class="lang-ja">寄木細工</span>
+          <span class="lang-en" style="display: none;">Yosegi Woodwork</span>
+        </h3>
+        <p>
+          <span class="lang-ja">緻密な幾何学模様と天然木の温もり</span>
+          <span class="lang-en" style="display: none;">Intricate geometric patterns and natural wood warmth.</span>
+        </p>
+        <span class="card-btn">
+          <span class="lang-ja">専用ページへ →</span>
+          <span class="lang-en" style="display: none;">Go to Page →</span>
+        </span>
+      </div>
+    </a>
 
-        // Firebaseの初期化
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
+    <!-- 2. 扇子 -->
+    <a href="sensu.html" class="card">
+      <div class="card-img-wrapper">
+        <img src="sensu.webp" alt="扇子">
+      </div>
+      <div class="card-body">
+        <h3>
+          <span class="lang-ja">扇子</span>
+          <span class="lang-en" style="display: none;">Folding Fans</span>
+        </h3>
+        <p>
+          <span class="lang-ja">「末広がり」の美しさと洗練された機能美</span>
+          <span class="lang-en" style="display: none;">Functional elegance symbolizing prosperity and good fortune.</span>
+        </p>
+        <span class="card-btn">
+          <span class="lang-ja">専用ページへ →</span>
+          <span class="lang-en" style="display: none;">Go to Page →</span>
+        </span>
+      </div>
+    </a>
 
-        // DOM要素の取得
-        const loginBtn = document.getElementById('login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
-        const loggedOutView = document.getElementById('logged-out-view');
-        const loggedInView = document.getElementById('logged-in-view');
-        const userNameSpan = document.getElementById('user-name');
-        const userEmailP = document.getElementById('user-email');
+    <!-- 3. 江戸切子 -->
+    <a href="edokiriko.html" class="card">
+      <div class="card-img-wrapper">
+        <img src="edokiriko.jpg" alt="江戸切子">
+      </div>
+      <div class="card-body">
+        <h3>
+          <span class="lang-ja">江戸切子</span>
+          <span class="lang-en" style="display: none;">Edo Kiriko Glass</span>
+        </h3>
+        <p>
+          <span class="lang-ja">ガラスに刻まれた鮮やかなカット模様</span>
+          <span class="lang-en" style="display: none;">Brilliant cut glass patterns creating stunning light reflections.</span>
+        </p>
+        <span class="card-btn">
+          <span class="lang-ja">専用ページへ →</span>
+          <span class="lang-en" style="display: none;">Go to Page →</span>
+        </span>
+      </div>
+    </a>
 
-        // Googleログインボタンが押されたときの処理
-        loginBtn.addEventListener('click', () => {
-            signInWithPopup(auth, provider)
-                .then((result) => {
-                    console.log("ログイン成功:", result.user);
-                })
-                .catch((error) => {
-                    console.error("ログインエラー:", error);
-                    alert("ログインに失敗しました: " + error.message);
-                });
-        });
+    <!-- 4. 南部鉄器 -->
+    <a href="nanbutekki.html" class="card">
+      <div class="card-img-wrapper">
+        <img src="nanbutekki.jpg" alt="南部鉄器">
+      </div>
+      <div class="card-body">
+        <h3>
+          <span class="lang-ja">南部鉄器</span>
+          <span class="lang-en" style="display: none;">Nanbu Ironware</span>
+        </h3>
+        <p>
+          <span class="lang-ja">重厚な質感と素朴で温かみのある鉄瓶</span>
+          <span class="lang-en" style="display: none;">Durable cast ironware known for heat retention and rustic beauty.</span>
+        </p>
+        <span class="card-btn">
+          <span class="lang-ja">専用ページへ →</span>
+          <span class="lang-en" style="display: none;">Go to Page →</span>
+        </span>
+      </div>
+    </a>
+  </div>
+</section>
 
-        // ログアウトボタンが押されたときの処理
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                console.log("ログアウトしました");
-            }).catch((error) => {
-                console.error("ログアウトエラー:", error);
-            });
-        });
+<!-- 伝統的工芸品とは？＆ 経産省リンク -->
+<section id="about-crafts" class="detail-section">
+  <h2>
+    <span class="lang-ja">伝統的工芸品について</span>
+    <span class="lang-en" style="display: none;">About Traditional Crafts</span>
+  </h2>
+  
+  <p class="lang-ja">
+    日本の「伝統的工芸品」は、100年以上の歴史を持ち、主に手仕事によって作られ、人々の暮らしの中で受け継がれてきた工芸品です。<br>
+    法律に基づいて、経済産業大臣によって指定されています。
+  </p>
+  <p class="lang-en" style="display: none;">
+    Japan's "Traditional Crafts" are masterworks preserved for over 100 years, predominantly handcrafted and passed down through generations.
+  </p>
 
-        // ユーザーのログイン状態を常に監視して画面を切り替える
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                userNameSpan.textContent = user.displayName;
-                userEmailP.textContent = user.email;
-                loggedOutView.classList.add('hidden');
-                loggedInView.classList.remove('hidden');
-            } else {
-                loggedOutView.classList.remove('hidden');
-                loggedInView.classList.add('hidden');
-            }
-        });
-    </script>
+  <div class="info-box" style="margin-top: 30px; text-align: center; padding: 25px;">
+    <h3>
+      <span class="lang-ja">🔗 経済産業省 公式情報</span>
+      <span class="lang-en" style="display: none;">🔗 METI Official Information</span>
+    </h3>
+    <a href="https://www.meti.go.jp/policy/mono_info_service/mono/nichiyo-densan/index.html" target="_blank" rel="noopener noreferrer" class="scroll-btn" style="display: inline-block; padding: 10px 24px; font-size: 0.95rem; margin-top: 15px;">
+      <span class="lang-ja">経済産業省 伝統的工芸品品目一覧 ↗</span>
+      <span class="lang-en" style="display: none;">METI Traditional Crafts Page ↗</span>
+    </a>
+  </div>
+</section>
+
+<footer>
+  &copy; 日本の伝統美 Web - Traditional Japanese Crafts[cite: 1]
+  <div style="text-align: center; margin: 40px 0;">
+    <!-- 組織ポータルへのリンク -->
+    <a href="portal.html" class="scroll-btn">
+      <span class="lang-ja">開発者について（組織ポータル）</span>
+      <span class="lang-en" style="display: none;">About Developer (Portal)</span>
+    </a>
+  </div>
+</footer>
+
+<script>
+  function switchLanguage(lang) {
+    const jaElements = document.querySelectorAll('.lang-ja');
+    const enElements = document.querySelectorAll('.lang-en');
+    const btnJa = document.getElementById('btn-ja');
+    const btnEn = document.getElementById('btn-en');
+
+    localStorage.setItem('siteLang', lang);
+
+    if (lang === 'en') {
+      jaElements.forEach(el => el.style.display = 'none');
+      enElements.forEach(el => el.style.display = 'inline-block');
+      document.querySelectorAll('p.lang-en, div.lang-en').forEach(el => el.style.display = 'block');
+      if (btnJa) btnJa.classList.remove('active');
+      if (btnEn) btnEn.classList.add('active');
+    } else {
+      enElements.forEach(el => el.style.display = 'none');
+      jaElements.forEach(el => el.style.display = 'inline-block');
+      document.querySelectorAll('p.lang-ja, div.lang-ja').forEach(el => el.style.display = 'block');
+      if (btnEn) btnEn.classList.remove('active');
+      if (btnJa) btnJa.classList.add('active');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedLang = localStorage.getItem('siteLang') || 'ja';
+    switchLanguage(savedLang);
+  });
+</script>
+
 </body>
 </html>

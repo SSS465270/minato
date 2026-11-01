@@ -1,0 +1,256 @@
+@charset "utf-8";
+
+/* スムーズスクロール */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #f7f4ed;
+  color: #2b2b2b;
+  font-family: "Shippori Mincho", "Hiragino Mincho ProN", serif;
+  margin: 0;
+  padding: 0;
+  line-height: 1.8;
+}
+
+/* ① 表紙（ヒーローエリア） */
+header.hero {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  box-sizing: border-box;
+  background: linear-gradient(rgba(30, 15, 10, 0.65), rgba(30, 15, 10, 0.65)), url('yosegi.jpeg') no-repeat center center;
+  background-size: cover;
+  background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: #ffffff;
+  padding: 20px;
+}
+
+/* 右上の言語切り替えUI */
+.lang-switch-header {
+  position: absolute;
+  top: 25px;
+  right: 35px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 100;
+}
+
+.lang-btn {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 2px 8px;
+  transition: all 0.3s;
+}
+
+.lang-btn.active {
+  color: #ffffff;
+  border-bottom: 2px solid #b8860b;
+}
+
+.lang-btn:hover {
+  color: #ffffff;
+}
+
+.lang-divider {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.8rem;
+}
+
+/* メインタイトル・説明文 */
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero-content h1 {
+  font-size: 3.5rem;
+  margin: 0 0 15px 0;
+  letter-spacing: 0.08em;
+  text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);
+}
+
+.hero-content p {
+  font-size: 1.4rem;
+  margin-bottom: 40px;
+  opacity: 0.95;
+  letter-spacing: 0.05em;
+}
+
+.scroll-btn {
+  display: inline-block;
+  padding: 14px 32px;
+  background-color: #b8860b;
+  color: #ffffff;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.scroll-btn:hover {
+  background-color: #d4af37;
+  transform: translateY(-3px);
+}
+
+/* ② 選択画面（カードエリア） */
+.select-container {
+  max-width: 1000px;
+  margin: 60px auto;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.select-container h2 {
+  font-size: 2rem;
+  color: #3b2417;
+  margin-bottom: 10px;
+}
+
+.select-lead {
+  color: #666;
+  margin-bottom: 40px;
+}
+
+.card-grid {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  flex-wrap: wrap;
+}
+
+.card {
+  width: 210px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+
+.card-img-wrapper {
+  height: 160px;
+  overflow: hidden;
+}
+
+.card-img-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.card:hover .card-img-wrapper img {
+  transform: scale(1.05);
+}
+
+.card-body {
+  padding: 15px;
+  text-align: left;
+}
+
+.card-body h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  color: #3b2417;
+}
+
+.card-body p {
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.card-btn {
+  color: #b8860b;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+/* ③ 詳細セクション */
+.detail-section {
+  max-width: 900px;
+  margin: 80px auto;
+  background-color: #ffffff;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.detail-section h2 {
+  font-size: 1.8rem;
+  border-bottom: 2px solid #b8860b;
+  padding-bottom: 8px;
+  margin-top: 0;
+  color: #3b2417;
+}
+
+.layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.layout img {
+  width: 300px;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.info-box {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f0eae1;
+  border-left: 4px solid #b8860b;
+  border-radius: 4px;
+}
+
+.info-box h3 {
+  margin: 0 0 5px 0;
+  font-size: 1rem;
+  color: #3b2417;
+}
+
+.info-box p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* フッター */
+footer {
+  text-align: center;
+  padding: 20px;
+  background-color: #3b2417;
+  color: #ffffff;
+  margin-top: 60px;
+}
