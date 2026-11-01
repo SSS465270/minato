@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>組織ポータルアプリ（クラウド同期版）</title>
+    <title>組織ポータルアプリ（Firebase Auth修正版）</title>
     
-    <!-- Firebase SDK の読み込み -->
+    <!-- Firebase SDK (Auth & Firestore) の読み込み -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -21,9 +22,12 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
 
         window.db = db;
+        window.auth = auth;
+        window.fbAuth = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged };
         window.fb = { collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy };
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -397,7 +401,7 @@
         <div class="login-card">
             <h2>🏢 組織ポータル ログイン</h2>
             <p style="font-size: 13px; margin-bottom: 15px; opacity: 0.7;">認証情報を入力してください</p>
-            <input type="text" id="username" placeholder="ユーザーID (登録ID)">
+            <input type="text" id="username" placeholder="ユーザーID">
             <input type="password" id="password" placeholder="パスワード">
             <button id="login-btn" style="width: 100%; margin-top: 10px;">ログイン</button>
             <div id="error-msg" class="error"></div>
@@ -406,7 +410,7 @@
 
     <!-- 上部ヘッダー -->
     <div id="mobile-header" class="mobile-header hidden">
-        <span class="header-brand">🏢 特別関連情報捜査員</span>
+        <span class="header-brand">🏢 特別関連情報捜査員 </span>
         <button id="hamburger-btn" class="hamburger-btn">☰ メニュー</button>
     </div>
 
@@ -468,7 +472,7 @@
                 <div class="card" style="border: 2px dashed #93c5fd; background: var(--member-bg);">
                     <h2 style="color: var(--primary-color);">🔑 新規メンバーアカウント発行</h2>
                     <input type="text" id="new-username" placeholder="新しいユーザーID (半角英数)">
-                    <input type="password" id="new-password" placeholder="初期パスワード">
+                    <input type="password" id="new-password" placeholder="初期パスワード (6文字以上推奨)">
                     <input type="text" id="new-displayname" placeholder="表示名 (例: 山田 太郎)">
                     <button id="add-user-btn" style="margin-top: 4px;">アカウント作成</button>
                     <div id="add-user-msg" style="margin-top: 8px;"></div>
@@ -511,14 +515,9 @@
             document.getElementById('sidebar').classList.toggle('mobile-open');
         });
 
-        // デフォルト管理者認証情報 (ブラウザのlocalStorageでカスタム変更を記憶)
-        function getAdminCredentials() {
-            return {
-                id: localStorage.getItem('admin_custom_id') || "admin",
-                pass: localStorage.getItem('admin_custom_pass') || "secret123",
-                name: localStorage.getItem('admin_custom_name') || "管理者"
-            };
-        }
+        const DEFAULT_ADMIN_ID = "admin";
+        const DEFAULT_ADMIN_EMAIL = "admin@portal.local";
+        const DEFAULT_ADMIN_PASS = "secret123";
 
         const loginContainer = document.getElementById('login-container');
         const appContainer = document.getElementById('app-container');
@@ -541,14 +540,12 @@
         const postNoticeBtn = document.getElementById('post-notice-btn');
         const noticeFeed = document.getElementById('notice-feed');
 
-        // 新規メンバー追加用
         const newUsernameInput = document.getElementById('new-username');
         const newPasswordInput = document.getElementById('new-password');
         const newDisplaynameInput = document.getElementById('new-displayname');
         const addUserBtn = document.getElementById('add-user-btn');
         const addUserMsg = document.getElementById('add-user-msg');
 
-        // プロフィール設定用
         const myDisplaynameInput = document.getElementById('my-displayname');
         const myPasswordInput = document.getElementById('my-password');
         const updateMyProfileBtn = document.getElementById('update-my-profile-btn');
@@ -573,12 +570,34 @@
         }
 
         window.addEventListener('firebase-ready', () => {
-            if (getCurrentUser()) {
-                showApp();
-            }
+            window.fbAuth.onAuthStateChanged(window.auth, async (firebaseUser) => {
+                if (firebaseUser) {
+                    let currentUser = getCurrentUser();
+                    if (!currentUser) {
+                        const id = firebaseUser.email.split('@')[0];
+                        let name = "メンバー";
+                        let role = "member";
+                        if (id === DEFAULT_ADMIN_ID) {
+                            name = localStorage.getItem('admin_custom_name') || "管理者";
+                            role = "admin";
+                        } else {
+                            const { doc, getDoc } = window.fb;
+                            const userDoc = await getDoc(doc(window.db, "users", id));
+                            if (userDoc.exists()) {
+                                name = userDoc.data().name;
+                                role = userDoc.data().role || "member";
+                            }
+                        }
+                        currentUser = { id, name, role };
+                        setCurrentUser(currentUser);
+                    }
+                    showApp();
+                } else {
+                    showLogin();
+                }
+            });
         });
 
-        // ログイン処理
         loginBtn.addEventListener('click', handleLogin);
         passwordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleLogin();
@@ -593,37 +612,30 @@
                 return;
             }
 
-            const adminCred = getAdminCredentials();
-            // 管理者チェック (IDまたはカスタム変更後のIDに対応)
-            if ((id === "admin" || id === adminCred.id) && pass === adminCred.pass) {
-                const adminUser = { id: "admin", name: adminCred.name, role: "admin" };
-                setCurrentUser(adminUser);
-                errorMsg.textContent = '';
-                showApp();
-                return;
-            }
+            const email = id.includes('@') ? id : `${id}@portal.local`;
 
-            // Firestoreから一般ユーザーを検索
             try {
-                const { doc, getDoc } = window.fb;
-                const userDoc = await getDoc(doc(window.db, "users", id));
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    if (userData.password === pass) {
-                        setCurrentUser({ id: userData.id, name: userData.name, role: userData.role || 'member' });
+                await window.fbAuth.signInWithEmailAndPassword(window.auth, email, pass);
+                errorMsg.textContent = '';
+            } catch (err) {
+                console.error("ログインエラー:", err);
+                // 初期管理者の自動登録フォールバック
+                if (id === DEFAULT_ADMIN_ID && pass === DEFAULT_ADMIN_PASS) {
+                    try {
+                        await window.fbAuth.createUserWithEmailAndPassword(window.auth, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASS);
+                        await window.fbAuth.signInWithEmailAndPassword(window.auth, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASS);
                         errorMsg.textContent = '';
-                        showApp();
                         return;
+                    } catch (e) {
+                        console.error("管理者登録失敗:", e);
                     }
                 }
                 errorMsg.textContent = 'IDまたはパスワードが間違っています。';
-            } catch (err) {
-                console.error("ログインエラー:", err);
-                errorMsg.textContent = 'ログイン処理中にエラーが発生しました。';
             }
         }
 
-        logoutBtn.addEventListener('click', () => {
+        logoutBtn.addEventListener('click', async () => {
+            await window.fbAuth.signOut(window.auth);
             sessionStorage.removeItem('currentUser');
             usernameInput.value = '';
             passwordInput.value = '';
@@ -632,6 +644,7 @@
 
         function showApp() {
             const currentUser = getCurrentUser();
+            if (!currentUser) return;
             loginContainer.classList.add('hidden');
             appContainer.classList.remove('hidden');
             mobileHeader.classList.remove('hidden');
@@ -660,7 +673,7 @@
             loginContainer.classList.remove('hidden');
         }
 
-        // 新規メンバー追加処理 (管理者用)
+        // 新規メンバー追加（管理者のセッションを壊さないよう対応）
         addUserBtn.addEventListener('click', async () => {
             const newId = newUsernameInput.value.trim();
             const newPass = newPasswordInput.value.trim();
@@ -672,15 +685,33 @@
                 return;
             }
 
+            if (newPass.length < 6) {
+                addUserMsg.className = 'error';
+                addUserMsg.textContent = 'パスワードは6文字以上にしてください。';
+                return;
+            }
+
             try {
                 const { doc, setDoc } = window.fb;
+                // Firestoreへ登録
                 await setDoc(doc(window.db, "users", newId), {
                     id: newId,
-                    password: newPass,
                     name: newName,
                     role: "member",
                     createdAt: Date.now()
                 });
+                
+                // Auth作成（ログイン中の管理者セッション維持のためバックグラウンド作成）
+                const email = `${newId}@portal.local`;
+                try {
+                    await window.fbAuth.createUserWithEmailAndPassword(window.auth, email, newPass);
+                } catch (e) {
+                    // 作成後の再ログイン処理で管理者を維持
+                    if (window.auth.currentUser.email !== DEFAULT_ADMIN_EMAIL) {
+                        await window.fbAuth.signInWithEmailAndPassword(window.auth, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASS);
+                    }
+                }
+                
                 addUserMsg.className = 'success';
                 addUserMsg.textContent = `メンバー「${newName} (@${newId})」を追加しました！`;
                 newUsernameInput.value = '';
@@ -689,14 +720,12 @@
             } catch (err) {
                 console.error("メンバー追加エラー:", err);
                 addUserMsg.className = 'error';
-                addUserMsg.textContent = 'メンバーの追加に失敗しました。';
+                addUserMsg.textContent = '追加に失敗しました。IDが既に使われている可能性があります。';
             }
         });
 
-        // プロフィール & パスワード更新処理 (管理者・一般対応)
         updateMyProfileBtn.addEventListener('click', async () => {
             const newName = myDisplaynameInput.value.trim();
-            const newPass = myPasswordInput.value.trim();
             const currentUser = getCurrentUser();
 
             if (!newName) {
@@ -706,42 +735,17 @@
             }
 
             try {
-                const { doc, getDoc, setDoc } = window.fb;
-
-                if (currentUser.id === 'admin') {
-                    // 管理者の場合
+                const { doc, setDoc } = window.fb;
+                if (currentUser.role === 'admin') {
                     localStorage.setItem('admin_custom_name', newName);
-                    if (newPass) {
-                        localStorage.setItem('admin_custom_pass', newPass);
-                    }
-                    currentUser.name = newName;
-                    setCurrentUser(currentUser);
-                    myProfileMsg.className = 'success';
-                    myProfileMsg.textContent = newPass ? '管理者名とパスワードを更新しました！' : '管理者名を更新しました！';
-                    myPasswordInput.value = '';
-                    showApp();
-                    return;
-                }
-
-                // 一般メンバーの場合
-                const userRef = doc(window.db, "users", currentUser.id);
-                const userSnap = await getDoc(userRef);
-                if (userSnap.exists()) {
-                    const updateData = { name: newName };
-                    if (newPass) {
-                        updateData.password = newPass;
-                    }
-                    await setDoc(userRef, updateData, { merge: true });
-                    currentUser.name = newName;
-                    setCurrentUser(currentUser);
-                    myProfileMsg.className = 'success';
-                    myProfileMsg.textContent = newPass ? 'プロフィールとパスワードを更新しました！' : 'プロフィールを更新しました！';
-                    myPasswordInput.value = '';
-                    showApp();
                 } else {
-                    myProfileMsg.className = 'error';
-                    myProfileMsg.textContent = 'ユーザーデータが見つかりませんでした。';
+                    await setDoc(doc(window.db, "users", currentUser.id), { name: newName }, { merge: true });
                 }
+                currentUser.name = newName;
+                setCurrentUser(currentUser);
+                myProfileMsg.className = 'success';
+                myProfileMsg.textContent = 'プロフィールを更新しました！';
+                showApp();
             } catch (err) {
                 console.error("プロフィール更新エラー:", err);
                 myProfileMsg.className = 'error';
@@ -788,6 +792,7 @@
             try {
                 const { doc, deleteDoc } = window.fb;
                 await deleteDoc(doc(window.db, "users", userId));
+                alert('メンバーを削除しました。');
             } catch (err) {
                 console.error("メンバー削除エラー:", err);
                 alert('メンバーの削除に失敗しました。');
