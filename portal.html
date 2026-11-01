@@ -496,7 +496,7 @@
                     <input type="password" id="new-password" placeholder="初期パスワード">
                     <input type="text" id="new-displayname" placeholder="表示名">
                     <button id="add-user-btn" style="margin-top: 4px;">アカウント作成</button>
-                    <div id="add-user-msg"></div>
+                    <div id="add-user-msg" style="margin-top: 8px;"></div>
                 </div>
             </section>
 
@@ -561,6 +561,13 @@
         const postNoticeBtn = document.getElementById('post-notice-btn');
         const noticeFeed = document.getElementById('notice-feed');
 
+        // 新規メンバー追加用の要素
+        const newUsernameInput = document.getElementById('new-username');
+        const newPasswordInput = document.getElementById('new-password');
+        const newDisplaynameInput = document.getElementById('new-displayname');
+        const addUserBtn = document.getElementById('add-user-btn');
+        const addUserMsg = document.getElementById('add-user-msg');
+
         // メニュー切り替え
         document.querySelectorAll('.sidebar-menu li').forEach(item => {
             item.addEventListener('click', () => {
@@ -586,7 +593,7 @@
             }
         });
 
-        // ハッシュなしで確実に動くログイン処理
+        // ログイン処理
         loginBtn.addEventListener('click', handleLogin);
         passwordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleLogin();
@@ -637,6 +644,39 @@
             mobileHeader.classList.add('hidden');
             loginContainer.classList.remove('hidden');
         }
+
+        // 新規メンバーアカウント作成処理
+        addUserBtn.addEventListener('click', async () => {
+            const newId = newUsernameInput.value.trim();
+            const newPass = newPasswordInput.value.trim();
+            const newName = newDisplaynameInput.value.trim();
+
+            if (!newId || !newPass || !newName) {
+                addUserMsg.className = 'error';
+                addUserMsg.textContent = 'すべての項目を入力してください。';
+                return;
+            }
+
+            try {
+                const { doc, setDoc } = window.fb;
+                await setDoc(doc(window.db, "users", newId), {
+                    id: newId,
+                    password: newPass, // 平文または管理用
+                    name: newName,
+                    role: "member",
+                    createdAt: Date.now()
+                });
+                addUserMsg.className = 'success';
+                addUserMsg.textContent = `メンバー「${newName} (@${newId})」を追加しました！`;
+                newUsernameInput.value = '';
+                newPasswordInput.value = '';
+                newDisplaynameInput.value = '';
+            } catch (err) {
+                console.error("メンバー追加エラー:", err);
+                addUserMsg.className = 'error';
+                addUserMsg.textContent = 'メンバーの追加に失敗しました。';
+            }
+        });
 
         document.getElementById('update-my-profile-btn').addEventListener('click', () => {
             const newName = document.getElementById('my-displayname').value.trim();
