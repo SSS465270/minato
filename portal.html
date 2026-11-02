@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>組織ポータルアプリ（完全版）</title>
+    <title>組織ポータルアプリ（安定版）</title>
     
     <!-- Markdownレンダラー (marked.js) の読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -476,7 +476,7 @@
                 <div class="card">
                     <h2>📌 新規お知らせ投稿</h2>
                     <input type="text" id="notice-title-input" placeholder="タイトルを入力">
-                    <textarea id="notice-content-input" placeholder="内容を入力（Markdown対応。または下のファイル選択で自動入力も可能）"></textarea>
+                    <textarea id="notice-content-input" placeholder="内容を入力（Markdown対応）"></textarea>
                     
                     <div style="display: flex; gap: 15px; margin-bottom: 12px; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 200px;">
@@ -600,7 +600,7 @@
         const updateMyProfileBtn = document.getElementById('update-my-profile-btn');
         const myProfileMsg = document.getElementById('my-profile-msg');
 
-        // .md ファイル選択時にテキストエリア＆タイトルに自動入力（手動編集も可能）
+        // .md ファイル選択時に自動入力
         noticeMdInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -867,7 +867,6 @@
         }
 
         function renderNotices(notices) {
-            noticeFeed.innerHTML = 'l';
             noticeFeed.innerHTML = '';
             if (notices.length === 0) {
                 noticeFeed.innerHTML = '<div style="opacity: 0.5; font-size: 13px; text-align: center; padding: 20px;">お知らせはありません</div>';
@@ -898,7 +897,7 @@
             const title = noticeTitleInput.value.trim();
             const content = noticeContentInput.value.trim();
             if (!title || !content) {
-                alert('タイトルと内容を入力（または.mdファイルを選択）してください。');
+                alert('タイトルと内容を入力してください。');
                 return;
             }
 
@@ -915,25 +914,26 @@
             const now = new Date();
             const timeStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
             
-            // 1. Firestoreにお知らせを保存
-            await window.fb.addDoc(window.fb.collection(window.db, "notices"), {
-                title, content, imageUrl, author: getCurrentUser().name, timestamp: Date.now(), time: timeStr
-            });
-
-            // 2. ntfyでスマホへプッシュ通知を送信
             try {
+                // 1. Firestoreにお知らせを保存
+                await window.fb.addDoc(window.fb.collection(window.db, "notices"), {
+                    title, content, imageUrl, author: getCurrentUser().name, timestamp: Date.now(), time: timeStr
+                });
+
+                // 2. ntfyでスマホへプッシュ通知を送信
                 await fetch("https://ntfy.sh/my-org-notice-SSS465270", {
                     method: "POST",
                     body: `【新着お知らせ】${title}\n投稿者: ${getCurrentUser().name}`
                 });
-            } catch (e) {
-                console.error("通知の送信エラー:", e);
-            }
 
-            noticeTitleInput.value = '';
-            noticeContentInput.value = '';
-            noticeImageInput.value = '';
-            noticeMdInput.value = '';
+                noticeTitleInput.value = '';
+                noticeContentInput.value = '';
+                noticeImageInput.value = '';
+                noticeMdInput.value = '';
+            } catch (err) {
+                console.error("投稿エラー:", err);
+                alert('投稿に失敗しました。コンソールを確認してください。');
+            }
         });
 
         function listenChats() {
@@ -972,7 +972,7 @@
             await window.fb.addDoc(window.fb.collection(window.db, "chats"), {
                 user: getCurrentUser().name, message: text, timestamp: Date.now(), time: timeStr
             });
-            chatInput.value = and('');
+            chatInput.value = '';
         }
 
         function escapeHtml(str) {
