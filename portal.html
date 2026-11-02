@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>組織ポータルアプリ（未読改善版）</title>
+    <title>組織ポータルアプリ（お知らせ分割・読み取り最適化版）</title>
     
     <!-- Markdownレンダラー (marked.js) の読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -12,7 +12,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBq3IzEeGuTaExPNZrsCkQwXpBvLB93qmg",
@@ -31,7 +31,7 @@
         window.db = db;
         window.auth = auth;
         window.fbAuth = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged };
-        window.fb = { collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy };
+        window.fb = { collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, limit };
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
 
@@ -518,7 +518,8 @@
                     <div id="user-info-display" style="font-size: 12px; opacity: 0.8; margin-top: 4px;"></div>
                 </div>
                 <ul class="sidebar-menu">
-                    <li class="active" data-target="section-home">🏠 ホーム（お知らせ）</li>
+                    <li class="active" data-target="section-home">🏠 ホーム（最新お知らせ）</li>
+                    <li data-target="section-all-notices" id="menu-all-notices">📜 すべてのお知らせ</li>
                     <li data-target="section-members" id="menu-members" class="hidden">👥 メンバー一覧</li>
                     <li data-target="section-chat" id="menu-chat">💬 チーム掲示板</li>
                     <li data-target="section-admin" id="menu-admin" class="hidden">🔑 アカウント管理</li>
@@ -562,8 +563,17 @@
                 </div>
 
                 <div class="card">
-                    <h2>📢 組織からの通知一覧</h2>
+                    <h2>📢 直近の通知一覧 (最新5件)</h2>
                     <div class="notice-feed" id="notice-feed"></div>
+                </div>
+            </section>
+
+            <!-- すべてのお知らせ一覧ページ（別ページ） -->
+            <section id="section-all-notices" class="content-section">
+                <div class="card">
+                    <h2>📜 すべてのお知らせ一覧 (過去ログ)</h2>
+                    <p style="font-size: 13px; opacity: 0.7; margin-bottom: 15px;">これまでに投稿されたすべてのお知らせを確認できます。</p>
+                    <div class="notice-feed" id="all-notice-feed"></div>
                 </div>
             </section>
 
@@ -658,6 +668,7 @@
         const noticeMdInput = document.getElementById('notice-md-input');
         const postNoticeBtn = document.getElementById('post-notice-btn');
         const noticeFeed = document.getElementById('notice-feed');
+        const allNoticeFeed = document.getElementById('all-notice-feed');
         const unreadContainer = document.getElementById('unread-container');
         const unreadFeed = document.getElementById('unread-feed');
         const unreadCount = document.getElementById('unread-count');
@@ -821,6 +832,7 @@
             listenMembers();
             listenChats();
             listenNotices();
+            listenAllNotices();
         }
 
         function showLogin() {
@@ -951,12 +963,23 @@
             }
         };
 
+        // ホーム画面用：最新5件だけを取得（ここで読み取り数を大幅セーブ！）
         function listenNotices() {
-            const { collection, query, orderBy, onSnapshot } = window.fb;
-            onSnapshot(query(collection(window.db, "notices"), orderBy("timestamp", "asc")), (snapshot) => {
+            const { collection, query, orderBy, limit, onSnapshot } = window.fb;
+            onSnapshot(query(collection(window.db, "notices"), orderBy("timestamp", "desc"), limit(5)), (snapshot) => {
                 const notices = [];
                 snapshot.forEach(doc => notices.push({ id: doc.id, ...doc.data() }));
                 renderNotices(notices);
+            });
+        }
+
+        // 別ページ用：すべてのお知らせを取得するリスナー
+        function listenAllNotices() {
+            const { collection, query, orderBy, onSnapshot } = window.fb;
+            onSnapshot(query(collection(window.db, "notices"), orderBy("timestamp", "desc")), (snapshot) => {
+                const notices = [];
+                snapshot.forEach(doc => notices.push({ id: doc.id, ...doc.data() }));
+                renderAllNotices(notices);
             });
         }
 
@@ -972,7 +995,6 @@
             const formattedContent = typeof marked !== 'undefined' ? marked.parse(notice.content || '') : escapeHtml(notice.content);
             const badgeHtml = isUnread ? `<span class="badge-unread">未読</span>` : '';
 
-            // 未読の場合は中に「既読にする」ボタンを配置して、じっくり読めるようにする
             const actionButtonHtml = isUnread ? `
                 <div style="margin-top: 12px; text-align: right;">
                     <button class="btn-small btn-secondary mark-read-single-btn" data-id="${notice.id}">✓ 既読にする</button>
@@ -1001,20 +1023,20 @@
                 </div>
             `;
 
-            // タイトル部分をクリックで開閉
             const header = card.querySelector('.notice-header');
-            header.addEventListener('click', (e) => {
+            header.addEventListener('click', () => {
                 card.classList.toggle('open');
             });
 
-            // 「既読にする」ボタンが押された時の処理
             if (isUnread) {
                 const readBtn = card.querySelector('.mark-read-single-btn');
                 if (readBtn) {
                     readBtn.addEventListener('click', (e) => {
-                        e.stopPropagation(); // カードが閉じないようにする
+                        e.stopPropagation();
                         markAsRead(notice.id);
-                        renderNotices(latestNotices);
+                        // 再描画を促すためリフレッシュ
+                        listenNotices();
+                        listenAllNotices();
                     });
                 }
             }
@@ -1035,7 +1057,7 @@
             if (unreadItems.length > 0) {
                 unreadContainer.classList.remove('hidden');
                 unreadCount.textContent = unreadItems.length;
-                unreadItems.slice().reverse().forEach(notice => {
+                unreadItems.forEach(notice => {
                     unreadFeed.appendChild(createNoticeCardElement(notice, true));
                 });
             } else {
@@ -1047,15 +1069,31 @@
                 return;
             }
 
-            notices.slice().reverse().forEach(notice => {
+            notices.forEach(notice => {
                 const isUnread = !readList.includes(notice.id);
                 noticeFeed.appendChild(createNoticeCardElement(notice, isUnread));
+            });
+        }
+
+        function renderAllNotices(notices) {
+            const readList = getReadNotices();
+            allNoticeFeed.innerHTML = '';
+
+            if (notices.length === 0) {
+                allNoticeFeed.innerHTML = '<div style="opacity: 0.5; font-size: 13px; text-align: center; padding: 20px;">お知らせはありません</div>';
+                return;
+            }
+
+            notices.forEach(notice => {
+                const isUnread = !readList.includes(notice.id);
+                allNoticeFeed.appendChild(createNoticeCardElement(notice, isUnread));
             });
         }
 
         markAllReadBtn.addEventListener('click', () => {
             latestNotices.forEach(notice => markAsRead(notice.id));
             renderNotices(latestNotices);
+            listenAllNotices();
         });
 
         postNoticeBtn.addEventListener('click', async () => {
