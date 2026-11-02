@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>組織ポータルアプリ（通知機能付き）</title>
+    <title>組織ポータルアプリ（完全版）</title>
     
+    <!-- Markdownレンダラー (marked.js) の読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <!-- Firebase SDK (Auth & Firestore) の読み込み -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -305,10 +308,42 @@
         }
         .notice-body {
             font-size: 14px;
-            white-space: pre-wrap;
             margin: 0;
             opacity: 0.9;
-            line-height: 1.5;
+            line-height: 1.6;
+        }
+        .notice-body h1, .notice-body h2, .notice-body h3 {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 4px;
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }
+        .notice-body code {
+            background: rgba(0,0,0,0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .notice-body pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        .notice-body blockquote {
+            border-left: 4px solid var(--primary-color);
+            margin: 0;
+            padding-left: 10px;
+            opacity: 0.8;
+        }
+        .notice-image {
+            margin-top: 12px;
+            max-width: 100%;
+            border-radius: 6px;
+            max-height: 250px;
+            object-fit: cover;
+            border: 1px solid var(--border-color);
         }
         .notice-footer {
             font-size: 12px;
@@ -440,8 +475,20 @@
             <section id="section-home" class="content-section active">
                 <div class="card">
                     <h2>📌 新規お知らせ投稿</h2>
-                    <input type="text" id="notice-title-input" placeholder="タイトル">
-                    <textarea id="notice-content-input" placeholder="内容..."></textarea>
+                    <input type="text" id="notice-title-input" placeholder="タイトルを入力">
+                    <textarea id="notice-content-input" placeholder="内容を入力（Markdown対応。または下のファイル選択で自動入力も可能）"></textarea>
+                    
+                    <div style="display: flex; gap: 15px; margin-bottom: 12px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="font-size: 12px; opacity: 0.8; display: block; margin-bottom: 4px;">📝 .mdファイルを読み込む (任意):</label>
+                            <input type="file" id="notice-md-input" accept=".md,.txt" style="font-size: 12px; margin: 0;">
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="font-size: 12px; opacity: 0.8; display: block; margin-bottom: 4px;">📷 画像を添付 (任意):</label>
+                            <input type="file" id="notice-image-input" accept="image/*" style="font-size: 12px; margin: 0;">
+                        </div>
+                    </div>
+
                     <button id="post-notice-btn">お知らせを送信</button>
                 </div>
                 <div class="card">
@@ -537,6 +584,8 @@
         const sendChatBtn = document.getElementById('send-chat-btn');
         const noticeTitleInput = document.getElementById('notice-title-input');
         const noticeContentInput = document.getElementById('notice-content-input');
+        const noticeImageInput = document.getElementById('notice-image-input');
+        const noticeMdInput = document.getElementById('notice-md-input');
         const postNoticeBtn = document.getElementById('post-notice-btn');
         const noticeFeed = document.getElementById('notice-feed');
 
@@ -550,6 +599,20 @@
         const myPasswordInput = document.getElementById('my-password');
         const updateMyProfileBtn = document.getElementById('update-my-profile-btn');
         const myProfileMsg = document.getElementById('my-profile-msg');
+
+        // .md ファイル選択時にテキストエリア＆タイトルに自動入力（手動編集も可能）
+        noticeMdInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                noticeContentInput.value = evt.target.result;
+                if (!noticeTitleInput.value.trim()) {
+                    noticeTitleInput.value = file.name.replace(/\.[^/.]+$/, "");
+                }
+            };
+            reader.readAsText(file);
+        });
 
         document.querySelectorAll('.sidebar-menu li').forEach(item => {
             item.addEventListener('click', () => {
@@ -804,6 +867,7 @@
         }
 
         function renderNotices(notices) {
+            noticeFeed.innerHTML = 'l';
             noticeFeed.innerHTML = '';
             if (notices.length === 0) {
                 noticeFeed.innerHTML = '<div style="opacity: 0.5; font-size: 13px; text-align: center; padding: 20px;">お知らせはありません</div>';
@@ -812,27 +876,48 @@
             notices.slice().reverse().forEach(notice => {
                 const card = document.createElement('div');
                 card.className = 'notice-card';
+                
+                let imageHtml = '';
+                if (notice.imageUrl) {
+                    imageHtml = `<img src="${notice.imageUrl}" class="notice-image" alt="添付画像">`;
+                }
+
+                const formattedContent = typeof marked !== 'undefined' ? marked.parse(notice.content || '') : escapeHtml(notice.content);
+
                 card.innerHTML = `
                     <div class="notice-header"><h3 class="notice-title">${escapeHtml(notice.title)}</h3><span class="notice-meta">${notice.time}</span></div>
-                    <p class="notice-body">${escapeHtml(notice.content)}</p>
+                    <div class="notice-body">${formattedContent}</div>
+                    ${imageHtml}
                     <div class="notice-footer">投稿者: <strong>${escapeHtml(notice.author || '不明')}</strong></div>
                 `;
                 noticeFeed.appendChild(card);
             });
         }
 
-        // ▼▼▼ ここにお知らせ投稿 ＋ ntfy通知のコードを設定しました ▼▼▼
         postNoticeBtn.addEventListener('click', async () => {
             const title = noticeTitleInput.value.trim();
             const content = noticeContentInput.value.trim();
-            if (!title || !content) return;
-            
+            if (!title || !content) {
+                alert('タイトルと内容を入力（または.mdファイルを選択）してください。');
+                return;
+            }
+
+            let imageUrl = "";
+            const imageFile = noticeImageInput.files[0];
+            if (imageFile) {
+                imageUrl = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(imageFile);
+                });
+            }
+
             const now = new Date();
             const timeStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
             
             // 1. Firestoreにお知らせを保存
             await window.fb.addDoc(window.fb.collection(window.db, "notices"), {
-                title, content, author: getCurrentUser().name, timestamp: Date.now(), time: timeStr
+                title, content, imageUrl, author: getCurrentUser().name, timestamp: Date.now(), time: timeStr
             });
 
             // 2. ntfyでスマホへプッシュ通知を送信
@@ -847,6 +932,8 @@
 
             noticeTitleInput.value = '';
             noticeContentInput.value = '';
+            noticeImageInput.value = '';
+            noticeMdInput.value = '';
         });
 
         function listenChats() {
@@ -885,7 +972,7 @@
             await window.fb.addDoc(window.fb.collection(window.db, "chats"), {
                 user: getCurrentUser().name, message: text, timestamp: Date.now(), time: timeStr
             });
-            chatInput.value = '';
+            chatInput.value = and('');
         }
 
         function escapeHtml(str) {
@@ -893,7 +980,7 @@
             return str.replace(/[&'`<>]/g, function(match) {
                 return {
                     '&': '&amp;',
-                    QUOTE: '&#x27;',
+                    '\'': '&#x27;',
                     '`': '&#x60;',
                     '<': '&lt;',
                     '>': '&gt;',
