@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>組織ポータルアプリ（DM未読バッジ対応版）</title>
+    <title>組織ポータルアプリ（セキュリティ向上版）</title>
     
     <!-- Markdownレンダラー (marked.js) の読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -462,7 +462,6 @@
             border-radius: 4px;
         }
         
-        /* メニュー内バッジのスタイル */
         .menu-badge {
             background-color: #ef4444;
             color: white;
@@ -520,7 +519,7 @@
 
         <main>
             <section id="section-home" class="content-section active">
-                <div class="card" id="post-notice-card" class="hidden">
+                <div class="card" id="post-notice-card">
                     <h2>📌 新規お知らせ投稿</h2>
                     <input type="text" id="notice-title-input" placeholder="タイトルを入力">
                     <textarea id="notice-content-input" placeholder="内容を入力（Markdown対応）"></textarea>
@@ -658,7 +657,7 @@
 
         const DEFAULT_ADMIN_ID = "admin";
         const DEFAULT_ADMIN_EMAIL = "admin@portal.local";
-        const DEFAULT_ADMIN_PASS = "secret123";
+        // ※ 平文のデフォルトパスワード（DEFAULT_ADMIN_PASS）はセキュリティ上の理由から削除しました。
 
         const loginContainer = document.getElementById('login-container');
         const appContainer = document.getElementById('app-container');
@@ -743,7 +742,6 @@
                 document.getElementById(targetId).classList.add('active');
                 document.getElementById('sidebar').classList.remove('mobile-open');
 
-                // メンバーがDM画面を開いたら未読バッジを消す
                 if (targetId === 'section-dm') {
                     const currentUser = getCurrentUser();
                     if (currentUser && currentUser.role !== 'admin') {
@@ -833,16 +831,6 @@
                 errorMsg.textContent = '';
             } catch (err) {
                 console.error("ログインエラー:", err);
-                if (id === DEFAULT_ADMIN_ID && pass === DEFAULT_ADMIN_PASS) {
-                    try {
-                        await window.fbAuth.createUserWithEmailAndPassword(window.auth, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASS);
-                        await window.fbAuth.signInWithEmailAndPassword(window.auth, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASS);
-                        errorMsg.textContent = '';
-                        return;
-                    } catch (e) {
-                        console.error("管理者登録失敗:", e);
-                    }
-                }
                 errorMsg.textContent = 'IDまたはパスワードが間違っています。';
             }
         }
@@ -869,14 +857,12 @@
                 menuAdmin.classList.remove('hidden');
                 menuMembers.classList.remove('hidden');
                 menuAdminDmList.classList.remove('hidden');
-                postNoticeCard.classList.remove('hidden');
                 userInfoDisplay.innerHTML = `${escapeHtml(currentUser.name)} <span class="badge-admin">管理者</span>`;
                 listenAdminDmMemberList();
             } else {
                 menuAdmin.classList.add('hidden');
                 menuMembers.classList.add('hidden');
                 menuAdminDmList.classList.add('hidden');
-                postNoticeCard.classList.add('hidden');
                 userInfoDisplay.innerHTML = `${escapeHtml(currentUser.name)} <span style="font-size:11px; opacity:0.7;">メンバー</span>`;
                 listenMemberDm(currentUser.id);
             }
@@ -920,13 +906,7 @@
                 });
                 
                 const email = `${newId}@portal.local`;
-                try {
-                    await window.fbAuth.createUserWithEmailAndPassword(window.auth, email, newPass);
-                } catch (e) {
-                    if (window.auth.currentUser.email !== DEFAULT_ADMIN_EMAIL) {
-                        await window.fbAuth.signInWithEmailAndPassword(window.auth, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASS);
-                    }
-                }
+                await window.fbAuth.createUserWithEmailAndPassword(window.auth, email, newPass);
                 
                 addUserMsg.className = 'success';
                 addUserMsg.textContent = `メンバー「${newName} (@${newId})」を追加しました！`;
@@ -1015,7 +995,6 @@
             }
         };
 
-        // --- メンバー用DMリスナー & 未読判定 ---
         function listenMemberDm(userId) {
             const { collection, query, orderBy, onSnapshot } = window.fb;
             if (unsubscribeDm) unsubscribeDm();
@@ -1024,7 +1003,6 @@
                 snapshot.forEach(doc => messages.push(doc.data()));
                 renderDmMessages(messages, dmBox);
 
-                // メンバー側：自分が最後に見た時間以降に、管理者からの新しいメッセージがあったらバッジを表示
                 if (messages.length > 0) {
                     const lastMsg = messages[messages.length - 1];
                     const lastReadTime = Number(localStorage.getItem(`last_read_dm_${userId}`) || 0);
@@ -1065,7 +1043,6 @@
             }
         }
 
-        // --- 管理者用 DMリスト・チャット & 未読バッジ ---
         function listenAdminDmMemberList() {
             const { collection, onSnapshot } = window.fb;
             onSnapshot(collection(window.db, "users"), (snapshot) => {
@@ -1087,14 +1064,11 @@
                 return;
             }
 
-            let totalUnreadForAdmin = 0;
-
             users.forEach(u => {
                 const card = document.createElement('div');
                 card.className = 'member-card';
                 card.style.cursor = 'pointer';
 
-                // 各メンバーごとの未読バッジ用コンテナ
                 const unreadBadgeId = `admin-unread-${u.id}`;
                 
                 card.innerHTML = `
@@ -1108,7 +1082,6 @@
                 });
                 adminDmMemberGrid.appendChild(card);
 
-                // 各メンバーのメッセージを監視して管理者側の未読を判定
                 const { collection, query, orderBy, onSnapshot } = window.fb;
                 onSnapshot(query(collection(window.db, "dms", u.id, "messages"), orderBy("timestamp", "asc")), (snapshot) => {
                     const messages = [];
@@ -1118,7 +1091,6 @@
                         const adminLastRead = Number(localStorage.getItem(`admin_read_${u.id}`) || 0);
                         const badgeEl = document.getElementById(unreadBadgeId);
 
-                        // 最後の発言者がメンバー本人で、かつ管理者がまだ読んでいない場合
                         if (lastMsg.senderId !== 'admin' && lastMsg.timestamp > adminLastRead) {
                             if (badgeEl) badgeEl.classList.remove('hidden');
                             adminDmBadge.classList.remove('hidden');
@@ -1136,7 +1108,6 @@
             adminDmChatView.classList.remove('hidden');
             activeDmTitle.textContent = `💬 DM相談: ${user.name} (@${user.id})`;
 
-            // 管理者がこのメンバーを開いたので既読時間を更新
             localStorage.setItem(`admin_read_${user.id}`, Date.now());
 
             const { collection, query, orderBy, onSnapshot } = window.fb;
@@ -1153,7 +1124,7 @@
             adminDmChatView.classList.add('hidden');
             adminDmListView.classList.remove('hidden');
             currentDmTargetUser = null;
-            listenAdminDmMemberList(); // リスト再描画
+            listenAdminDmMemberList();
         });
 
         sendAdminDmBtn.addEventListener('click', sendAdminDmMessage);
@@ -1356,11 +1327,6 @@
             try {
                 await window.fb.addDoc(window.fb.collection(window.db, "notices"), {
                     title, content, imageUrl, author: getCurrentUser().name, timestamp: Date.now(), time: timeStr
-                });
-
-                await fetch("https://ntfy.sh/my-org-notice-SSS465270", {
-                    method: "POST",
-                    body: `【新着お知らせ】${title}\n投稿者: ${getCurrentUser().name}`
                 });
 
                 noticeTitleInput.value = '';
