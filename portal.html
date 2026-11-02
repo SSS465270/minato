@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>組織ポータルアプリ（安定版）</title>
+    <title>組織ポータルアプリ（未読改善版）</title>
     
     <!-- Markdownレンダラー (marked.js) の読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -277,34 +277,92 @@
             display: none !important;
         }
 
+        /* 未読セクションのスタイル */
+        .unread-section {
+            background: rgba(37, 99, 235, 0.05);
+            border: 2px solid var(--primary-color);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .unread-header {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* アコーディオン形式のお知らせカード */
         .notice-feed {
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            margin-top: 20px;
+            gap: 12px;
+            margin-top: 10px;
         }
         .notice-card {
             background: var(--member-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 16px;
-            position: relative;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .notice-card.unread {
+            border-left: 4px solid var(--primary-color);
         }
         .notice-header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 8px;
+            align-items: center;
+            padding: 14px 16px;
+            cursor: pointer;
+            user-select: none;
+            background: var(--card-bg);
+        }
+        .notice-header:hover {
+            background: var(--border-color);
+            opacity: 0.9;
+        }
+        .notice-title-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         .notice-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
-            color: var(--primary-color);
+            color: var(--text-color);
             margin: 0;
         }
+        .badge-unread {
+            background-color: #ef4444;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
         .notice-meta {
-            font-size: 11px;
+            font-size: 12px;
             opacity: 0.6;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .notice-body-wrapper {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease;
+            padding: 0 16px;
+            background: var(--member-bg);
+            border-top: 1px solid transparent;
+        }
+        .notice-card.open .notice-body-wrapper {
+            max-height: 2000px;
+            padding: 16px;
+            border-top-color: var(--border-color);
+            transition: max-height 0.5s ease-in, padding 0.3s ease;
         }
         .notice-body {
             font-size: 14px;
@@ -348,10 +406,12 @@
         .notice-footer {
             font-size: 12px;
             opacity: 0.7;
-            margin-top: 10px;
-            padding-top: 6px;
+            margin-top: 12px;
+            padding-top: 8px;
             border-top: 1px dashed var(--border-color);
-            text-align: right;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .member-grid {
@@ -491,6 +551,16 @@
 
                     <button id="post-notice-btn">お知らせを送信</button>
                 </div>
+
+                <!-- 未読まとめセクション -->
+                <div id="unread-container" class="hidden unread-section">
+                    <div class="unread-header">
+                        <span>🔔 未読のお知らせ (<span id="unread-count">0</span>件)</span>
+                        <button class="btn-small btn-secondary" id="mark-all-read-btn">すべて既読にする</button>
+                    </div>
+                    <div class="notice-feed" id="unread-feed" style="margin-top: 0;"></div>
+                </div>
+
                 <div class="card">
                     <h2>📢 組織からの通知一覧</h2>
                     <div class="notice-feed" id="notice-feed"></div>
@@ -588,6 +658,10 @@
         const noticeMdInput = document.getElementById('notice-md-input');
         const postNoticeBtn = document.getElementById('post-notice-btn');
         const noticeFeed = document.getElementById('notice-feed');
+        const unreadContainer = document.getElementById('unread-container');
+        const unreadFeed = document.getElementById('unread-feed');
+        const unreadCount = document.getElementById('unread-count');
+        const markAllReadBtn = document.getElementById('mark-all-read-btn');
 
         const newUsernameInput = document.getElementById('new-username');
         const newPasswordInput = document.getElementById('new-password');
@@ -600,7 +674,6 @@
         const updateMyProfileBtn = document.getElementById('update-my-profile-btn');
         const myProfileMsg = document.getElementById('my-profile-msg');
 
-        // .md ファイル選択時に自動入力
         noticeMdInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -630,6 +703,27 @@
 
         function setCurrentUser(user) {
             sessionStorage.setItem('currentUser', JSON.stringify(user));
+        }
+
+        function getReadNotices() {
+            const currentUser = getCurrentUser();
+            if (!currentUser) return [];
+            try {
+                return JSON.parse(localStorage.getItem(`read_notices_${currentUser.id}`) || '[]');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function markAsRead(noticeId) {
+            const readList = getReadNotices();
+            if (!readList.includes(noticeId)) {
+                readList.push(noticeId);
+                const currentUser = getCurrentUser();
+                if (currentUser) {
+                    localStorage.setItem(`read_notices_${currentUser.id}`, JSON.stringify(readList));
+                }
+            }
         }
 
         window.addEventListener('firebase-ready', () => {
@@ -866,32 +960,103 @@
             });
         }
 
+        function createNoticeCardElement(notice, isUnread) {
+            const card = document.createElement('div');
+            card.className = `notice-card ${isUnread ? 'unread' : ''}`;
+            
+            let imageHtml = '';
+            if (notice.imageUrl) {
+                imageHtml = `<img src="${notice.imageUrl}" class="notice-image" alt="添付画像">`;
+            }
+
+            const formattedContent = typeof marked !== 'undefined' ? marked.parse(notice.content || '') : escapeHtml(notice.content);
+            const badgeHtml = isUnread ? `<span class="badge-unread">未読</span>` : '';
+
+            // 未読の場合は中に「既読にする」ボタンを配置して、じっくり読めるようにする
+            const actionButtonHtml = isUnread ? `
+                <div style="margin-top: 12px; text-align: right;">
+                    <button class="btn-small btn-secondary mark-read-single-btn" data-id="${notice.id}">✓ 既読にする</button>
+                </div>
+            ` : '';
+
+            card.innerHTML = `
+                <div class="notice-header">
+                    <div class="notice-title-area">
+                        ${badgeHtml}
+                        <h3 class="notice-title">${escapeHtml(notice.title)}</h3>
+                    </div>
+                    <div class="notice-meta">
+                        <span>${notice.time}</span>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                </div>
+                <div class="notice-body-wrapper">
+                    <div class="notice-body">${formattedContent}</div>
+                    ${imageHtml}
+                    ${actionButtonHtml}
+                    <div class="notice-footer">
+                        <span>投稿者: <strong>${escapeHtml(notice.author || '不明')}</strong></span>
+                        <span style="font-size: 11px; opacity: 0.6;">クリックして閉じる</span>
+                    </div>
+                </div>
+            `;
+
+            // タイトル部分をクリックで開閉
+            const header = card.querySelector('.notice-header');
+            header.addEventListener('click', (e) => {
+                card.classList.toggle('open');
+            });
+
+            // 「既読にする」ボタンが押された時の処理
+            if (isUnread) {
+                const readBtn = card.querySelector('.mark-read-single-btn');
+                if (readBtn) {
+                    readBtn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // カードが閉じないようにする
+                        markAsRead(notice.id);
+                        renderNotices(latestNotices);
+                    });
+                }
+            }
+
+            return card;
+        }
+
+        let latestNotices = [];
         function renderNotices(notices) {
+            latestNotices = notices;
+            const readList = getReadNotices();
+
             noticeFeed.innerHTML = '';
+            unreadFeed.innerHTML = '';
+
+            const unreadItems = notices.filter(n => !readList.includes(n.id));
+
+            if (unreadItems.length > 0) {
+                unreadContainer.classList.remove('hidden');
+                unreadCount.textContent = unreadItems.length;
+                unreadItems.slice().reverse().forEach(notice => {
+                    unreadFeed.appendChild(createNoticeCardElement(notice, true));
+                });
+            } else {
+                unreadContainer.classList.add('hidden');
+            }
+
             if (notices.length === 0) {
                 noticeFeed.innerHTML = '<div style="opacity: 0.5; font-size: 13px; text-align: center; padding: 20px;">お知らせはありません</div>';
                 return;
             }
+
             notices.slice().reverse().forEach(notice => {
-                const card = document.createElement('div');
-                card.className = 'notice-card';
-                
-                let imageHtml = '';
-                if (notice.imageUrl) {
-                    imageHtml = `<img src="${notice.imageUrl}" class="notice-image" alt="添付画像">`;
-                }
-
-                const formattedContent = typeof marked !== 'undefined' ? marked.parse(notice.content || '') : escapeHtml(notice.content);
-
-                card.innerHTML = `
-                    <div class="notice-header"><h3 class="notice-title">${escapeHtml(notice.title)}</h3><span class="notice-meta">${notice.time}</span></div>
-                    <div class="notice-body">${formattedContent}</div>
-                    ${imageHtml}
-                    <div class="notice-footer">投稿者: <strong>${escapeHtml(notice.author || '不明')}</strong></div>
-                `;
-                noticeFeed.appendChild(card);
+                const isUnread = !readList.includes(notice.id);
+                noticeFeed.appendChild(createNoticeCardElement(notice, isUnread));
             });
         }
+
+        markAllReadBtn.addEventListener('click', () => {
+            latestNotices.forEach(notice => markAsRead(notice.id));
+            renderNotices(latestNotices);
+        });
 
         postNoticeBtn.addEventListener('click', async () => {
             const title = noticeTitleInput.value.trim();
@@ -915,12 +1080,10 @@
             const timeStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
             
             try {
-                // 1. Firestoreにお知らせを保存
                 await window.fb.addDoc(window.fb.collection(window.db, "notices"), {
                     title, content, imageUrl, author: getCurrentUser().name, timestamp: Date.now(), time: timeStr
                 });
 
-                // 2. ntfyでスマホへプッシュ通知を送信
                 await fetch("https://ntfy.sh/my-org-notice-SSS465270", {
                     method: "POST",
                     body: `【新着お知らせ】${title}\n投稿者: ${getCurrentUser().name}`
