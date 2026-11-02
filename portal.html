@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>組織ポータルアプリ（Firebase Auth修正版）</title>
+    <title>組織ポータルアプリ（通知機能付き）</title>
     
     <!-- Firebase SDK (Auth & Firestore) の読み込み -->
     <script type="module">
@@ -619,7 +619,6 @@
                 errorMsg.textContent = '';
             } catch (err) {
                 console.error("ログインエラー:", err);
-                // 初期管理者の自動登録フォールバック
                 if (id === DEFAULT_ADMIN_ID && pass === DEFAULT_ADMIN_PASS) {
                     try {
                         await window.fbAuth.createUserWithEmailAndPassword(window.auth, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASS);
@@ -673,7 +672,6 @@
             loginContainer.classList.remove('hidden');
         }
 
-        // 新規メンバー追加（管理者のセッションを壊さないよう対応）
         addUserBtn.addEventListener('click', async () => {
             const newId = newUsernameInput.value.trim();
             const newPass = newPasswordInput.value.trim();
@@ -693,7 +691,6 @@
 
             try {
                 const { doc, setDoc } = window.fb;
-                // Firestoreへ登録
                 await setDoc(doc(window.db, "users", newId), {
                     id: newId,
                     name: newName,
@@ -701,12 +698,10 @@
                     createdAt: Date.now()
                 });
                 
-                // Auth作成（ログイン中の管理者セッション維持のためバックグラウンド作成）
                 const email = `${newId}@portal.local`;
                 try {
                     await window.fbAuth.createUserWithEmailAndPassword(window.auth, email, newPass);
                 } catch (e) {
-                    // 作成後の再ログイン処理で管理者を維持
                     if (window.auth.currentUser.email !== DEFAULT_ADMIN_EMAIL) {
                         await window.fbAuth.signInWithEmailAndPassword(window.auth, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASS);
                     }
@@ -826,15 +821,30 @@
             });
         }
 
+        // ▼▼▼ ここにお知らせ投稿 ＋ ntfy通知のコードを設定しました ▼▼▼
         postNoticeBtn.addEventListener('click', async () => {
             const title = noticeTitleInput.value.trim();
             const content = noticeContentInput.value.trim();
             if (!title || !content) return;
+            
             const now = new Date();
             const timeStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            // 1. Firestoreにお知らせを保存
             await window.fb.addDoc(window.fb.collection(window.db, "notices"), {
                 title, content, author: getCurrentUser().name, timestamp: Date.now(), time: timeStr
             });
+
+            // 2. ntfyでスマホへプッシュ通知を送信
+            try {
+                await fetch("https://ntfy.sh/my-org-notice-SSS465270", {
+                    method: "POST",
+                    body: `【新着お知らせ】${title}\n投稿者: ${getCurrentUser().name}`
+                });
+            } catch (e) {
+                console.error("通知の送信エラー:", e);
+            }
+
             noticeTitleInput.value = '';
             noticeContentInput.value = '';
         });
@@ -853,14 +863,19 @@
             chats.forEach(chat => {
                 const div = document.createElement('div');
                 div.className = 'chat-message';
-                div.innerHTML = `<span class="chat-user">${escapeHtml(chat.user)}</span><span class="chat-time">${chat.time}</span><div class="chat-text">${escapeHtml(chat.message)}</div>`;
+                div.innerHTML = `
+                    <div><span class="chat-user">${escapeHtml(chat.user)}</span><span class="chat-time">${chat.time}</span></div>
+                    <div class="chat-text">${escapeHtml(chat.message)}</div>
+                `;
                 chatBox.appendChild(div);
             });
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
         sendChatBtn.addEventListener('click', sendChatMessage);
-        chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
 
         async function sendChatMessage() {
             const text = chatInput.value.trim();
@@ -875,9 +890,15 @@
 
         function escapeHtml(str) {
             if (!str) return '';
-            return str.replace(/[&'`"<>]/g, (match) => ({
-                '&': '&amp;', "'": '&#x27;', '`': '&#x60;', '"': '&quot;', '<': '&lt;', '>': '&gt;'
-            }[match]));
+            return str.replace(/[&'`<>]/g, function(match) {
+                return {
+                    '&': '&amp;',
+                    QUOTE: '&#x27;',
+                    '`': '&#x60;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                }[match] || match;
+            });
         }
     </script>
 </body>
