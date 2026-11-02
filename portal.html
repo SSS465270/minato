@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>組織ポータルアプリ（お知らせ分割・読み取り最適化版）</title>
+    <title>組織ポータルアプリ（DM未読バッジ対応版）</title>
     
     <!-- Markdownレンダラー (marked.js) の読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -277,7 +277,6 @@
             display: none !important;
         }
 
-        /* 未読セクションのスタイル */
         .unread-section {
             background: rgba(37, 99, 235, 0.05);
             border: 2px solid var(--primary-color);
@@ -294,7 +293,6 @@
             justify-content: space-between;
         }
 
-        /* アコーディオン形式のお知らせカード */
         .notice-feed {
             display: flex;
             flex-direction: column;
@@ -370,31 +368,6 @@
             opacity: 0.9;
             line-height: 1.6;
         }
-        .notice-body h1, .notice-body h2, .notice-body h3 {
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 4px;
-            margin-top: 12px;
-            margin-bottom: 8px;
-        }
-        .notice-body code {
-            background: rgba(0,0,0,0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
-        }
-        .notice-body pre {
-            background: #1e293b;
-            color: #f8fafc;
-            padding: 10px;
-            border-radius: 6px;
-            overflow-x: auto;
-        }
-        .notice-body blockquote {
-            border-left: 4px solid var(--primary-color);
-            margin: 0;
-            padding-left: 10px;
-            opacity: 0.8;
-        }
         .notice-image {
             margin-top: 12px;
             max-width: 100%;
@@ -425,6 +398,7 @@
             padding: 14px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
+            position: relative;
         }
         .member-name {
             font-weight: bold;
@@ -487,6 +461,16 @@
             padding: 2px 6px;
             border-radius: 4px;
         }
+        
+        /* メニュー内バッジのスタイル */
+        .menu-badge {
+            background-color: #ef4444;
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -520,8 +504,10 @@
                 <ul class="sidebar-menu">
                     <li class="active" data-target="section-home">🏠 ホーム（最新お知らせ）</li>
                     <li data-target="section-all-notices" id="menu-all-notices">📜 すべてのお知らせ</li>
-                    <li data-target="section-members" id="menu-members" class="hidden">👥 メンバー一覧</li>
                     <li data-target="section-chat" id="menu-chat">💬 チーム掲示板</li>
+                    <li data-target="section-dm" id="menu-dm">📩 管理者DM相談 <span id="member-dm-badge" class="menu-badge hidden">新着</span></li>
+                    <li data-target="section-admin-dm-list" id="menu-admin-dm-list" class="hidden">📬 DM管理（管理者用） <span id="admin-dm-badge" class="menu-badge hidden">未読あり</span></li>
+                    <li data-target="section-members" id="menu-members" class="hidden">👥 メンバー一覧</li>
                     <li data-target="section-admin" id="menu-admin" class="hidden">🔑 アカウント管理</li>
                     <li data-target="section-settings">⚙️ プロフィール設定</li>
                 </ul>
@@ -534,7 +520,7 @@
 
         <main>
             <section id="section-home" class="content-section active">
-                <div class="card">
+                <div class="card" id="post-notice-card" class="hidden">
                     <h2>📌 新規お知らせ投稿</h2>
                     <input type="text" id="notice-title-input" placeholder="タイトルを入力">
                     <textarea id="notice-content-input" placeholder="内容を入力（Markdown対応）"></textarea>
@@ -553,7 +539,6 @@
                     <button id="post-notice-btn">お知らせを送信</button>
                 </div>
 
-                <!-- 未読まとめセクション -->
                 <div id="unread-container" class="hidden unread-section">
                     <div class="unread-header">
                         <span>🔔 未読のお知らせ (<span id="unread-count">0</span>件)</span>
@@ -568,7 +553,6 @@
                 </div>
             </section>
 
-            <!-- すべてのお知らせ一覧ページ（別ページ） -->
             <section id="section-all-notices" class="content-section">
                 <div class="card">
                     <h2>📜 すべてのお知らせ一覧 (過去ログ)</h2>
@@ -577,21 +561,51 @@
                 </div>
             </section>
 
-            <section id="section-members" class="content-section">
-                <div class="card">
-                    <h2>👥 メンバー一覧</h2>
-                    <div class="member-grid" id="member-grid"></div>
-                </div>
-            </section>
-
             <section id="section-chat" class="content-section">
                 <div class="card">
-                    <h2>💬 チーム掲示板 (チャット)</h2>
+                    <h2>💬 チーム掲示板 (全体チャット)</h2>
                     <div class="chat-box" id="chat-box"></div>
                     <div class="chat-form">
                         <input type="text" id="chat-input" placeholder="メッセージを入力...">
                         <button id="send-chat-btn">送信</button>
                     </div>
+                </div>
+            </section>
+
+            <section id="section-dm" class="content-section">
+                <div class="card">
+                    <h2>📩 管理者とのダイレクトメッセージ</h2>
+                    <p style="font-size: 13px; opacity: 0.7; margin-bottom: 15px;">ここでのやり取りは管理者とあなただけに見えます。</p>
+                    <div class="chat-box" id="dm-box"></div>
+                    <div class="chat-form">
+                        <input type="text" id="dm-input" placeholder="管理者へメッセージを送信...">
+                        <button id="send-dm-btn">送信</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-admin-dm-list" class="content-section">
+                <div class="card" id="admin-dm-list-view">
+                    <h2>📬 メンバーからのDM相談一覧</h2>
+                    <p style="font-size: 13px; opacity: 0.7; margin-bottom: 15px;">対応するメンバーを選択してください。</p>
+                    <div class="member-grid" id="admin-dm-member-grid"></div>
+                </div>
+
+                <div class="card hidden" id="admin-dm-chat-view">
+                    <button class="btn-small btn-secondary" id="back-to-dm-list-btn" style="margin-bottom: 15px;">← 一覧に戻る</button>
+                    <h2 id="active-dm-title">💬 DMチャット</h2>
+                    <div class="chat-box" id="admin-dm-box"></div>
+                    <div class="chat-form">
+                        <input type="text" id="admin-dm-input" placeholder="返信メッセージを入力...">
+                        <button id="send-admin-dm-btn">送信</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-members" class="content-section">
+                <div class="card">
+                    <h2>👥 メンバー一覧</h2>
+                    <div class="member-grid" id="member-grid"></div>
                 </div>
             </section>
 
@@ -655,13 +669,32 @@
         const logoutBtn = document.getElementById('logout-btn');
         const errorMsg = document.getElementById('error-msg');
         const userInfoDisplay = document.getElementById('user-info-display');
+        
         const menuAdmin = document.getElementById('menu-admin');
         const menuMembers = document.getElementById('menu-members');
+        const menuAdminDmList = document.getElementById('menu-admin-dm-list');
+        const postNoticeCard = document.getElementById('post-notice-card');
+        const memberDmBadge = document.getElementById('member-dm-badge');
+        const adminDmBadge = document.getElementById('admin-dm-badge');
 
         const memberGrid = document.getElementById('member-grid');
         const chatBox = document.getElementById('chat-box');
         const chatInput = document.getElementById('chat-input');
         const sendChatBtn = document.getElementById('send-chat-btn');
+        
+        const dmBox = document.getElementById('dm-box');
+        const dmInput = document.getElementById('dm-input');
+        const sendDmBtn = document.getElementById('send-dm-btn');
+
+        const adminDmMemberGrid = document.getElementById('admin-dm-member-grid');
+        const adminDmListView = document.getElementById('admin-dm-list-view');
+        const adminDmChatView = document.getElementById('admin-dm-chat-view');
+        const adminDmBox = document.getElementById('admin-dm-box');
+        const adminDmInput = document.getElementById('admin-dm-input');
+        const sendAdminDmBtn = document.getElementById('send-admin-dm-btn');
+        const activeDmTitle = document.getElementById('active-dm-title');
+        const backToDmListBtn = document.getElementById('back-to-dm-list-btn');
+
         const noticeTitleInput = document.getElementById('notice-title-input');
         const noticeContentInput = document.getElementById('notice-content-input');
         const noticeImageInput = document.getElementById('notice-image-input');
@@ -685,6 +718,9 @@
         const updateMyProfileBtn = document.getElementById('update-my-profile-btn');
         const myProfileMsg = document.getElementById('my-profile-msg');
 
+        let currentDmTargetUser = null;
+        let unsubscribeDm = null;
+
         noticeMdInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -703,8 +739,18 @@
                 document.querySelectorAll('.sidebar-menu li').forEach(i => i.classList.remove('active'));
                 document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
                 item.classList.add('active');
-                document.getElementById(item.getAttribute('data-target')).classList.add('active');
+                const targetId = item.getAttribute('data-target');
+                document.getElementById(targetId).classList.add('active');
                 document.getElementById('sidebar').classList.remove('mobile-open');
+
+                // メンバーがDM画面を開いたら未読バッジを消す
+                if (targetId === 'section-dm') {
+                    const currentUser = getCurrentUser();
+                    if (currentUser && currentUser.role !== 'admin') {
+                        localStorage.setItem(`last_read_dm_${currentUser.id}`, Date.now());
+                        memberDmBadge.classList.add('hidden');
+                    }
+                }
             });
         });
 
@@ -822,11 +868,17 @@
             if (currentUser.role === 'admin') {
                 menuAdmin.classList.remove('hidden');
                 menuMembers.classList.remove('hidden');
+                menuAdminDmList.classList.remove('hidden');
+                postNoticeCard.classList.remove('hidden');
                 userInfoDisplay.innerHTML = `${escapeHtml(currentUser.name)} <span class="badge-admin">管理者</span>`;
+                listenAdminDmMemberList();
             } else {
                 menuAdmin.classList.add('hidden');
                 menuMembers.classList.add('hidden');
+                menuAdminDmList.classList.add('hidden');
+                postNoticeCard.classList.add('hidden');
                 userInfoDisplay.innerHTML = `${escapeHtml(currentUser.name)} <span style="font-size:11px; opacity:0.7;">メンバー</span>`;
+                listenMemberDm(currentUser.id);
             }
 
             listenMembers();
@@ -963,7 +1015,193 @@
             }
         };
 
-        // ホーム画面用：最新5件だけを取得（ここで読み取り数を大幅セーブ！）
+        // --- メンバー用DMリスナー & 未読判定 ---
+        function listenMemberDm(userId) {
+            const { collection, query, orderBy, onSnapshot } = window.fb;
+            if (unsubscribeDm) unsubscribeDm();
+            unsubscribeDm = onSnapshot(query(collection(window.db, "dms", userId, "messages"), orderBy("timestamp", "asc")), (snapshot) => {
+                const messages = [];
+                snapshot.forEach(doc => messages.push(doc.data()));
+                renderDmMessages(messages, dmBox);
+
+                // メンバー側：自分が最後に見た時間以降に、管理者からの新しいメッセージがあったらバッジを表示
+                if (messages.length > 0) {
+                    const lastMsg = messages[messages.length - 1];
+                    const lastReadTime = Number(localStorage.getItem(`last_read_dm_${userId}`) || 0);
+                    const activeSection = document.querySelector('.content-section.active').id;
+
+                    if (lastMsg.senderId !== userId && lastMsg.timestamp > lastReadTime && activeSection !== 'section-dm') {
+                        memberDmBadge.classList.remove('hidden');
+                    }
+                }
+            });
+        }
+
+        sendDmBtn.addEventListener('click', sendMemberDmMessage);
+        dmInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMemberDmMessage();
+        });
+
+        async function sendMemberDmMessage() {
+            const text = dmInput.value.trim();
+            if (!text) return;
+            const currentUser = getCurrentUser();
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            try {
+                const { collection, addDoc } = window.fb;
+                await addDoc(collection(window.db, "dms", currentUser.id, "messages"), {
+                    sender: currentUser.name,
+                    senderId: currentUser.id,
+                    message: text,
+                    timestamp: Date.now(),
+                    time: timeStr
+                });
+                dmInput.value = '';
+            } catch (err) {
+                console.error("DM送信エラー:", err);
+                alert("送信に失敗しました。");
+            }
+        }
+
+        // --- 管理者用 DMリスト・チャット & 未読バッジ ---
+        function listenAdminDmMemberList() {
+            const { collection, onSnapshot } = window.fb;
+            onSnapshot(collection(window.db, "users"), (snapshot) => {
+                const users = [];
+                snapshot.forEach(doc => {
+                    if (doc.id !== 'admin') {
+                        users.push(doc.data());
+                    }
+                });
+                renderAdminDmMemberList(users);
+            });
+        }
+
+        function renderAdminDmMemberList(users) {
+            adminDmMemberGrid.innerHTML = '';
+            if (users.length === 0) {
+                adminDmMemberGrid.innerHTML = '<div style="opacity: 0.5; font-size: 13px;">登録されている一般メンバーはいません</div>';
+                adminDmBadge.classList.add('hidden');
+                return;
+            }
+
+            let totalUnreadForAdmin = 0;
+
+            users.forEach(u => {
+                const card = document.createElement('div');
+                card.className = 'member-card';
+                card.style.cursor = 'pointer';
+
+                // 各メンバーごとの未読バッジ用コンテナ
+                const unreadBadgeId = `admin-unread-${u.id}`;
+                
+                card.innerHTML = `
+                    <div class="member-name">👤 ${escapeHtml(u.name)} <span id="${unreadBadgeId}" class="badge-unread hidden">未読あり</span></div>
+                    <div class="member-role">@${escapeHtml(u.id)}</div>
+                    <button class="btn-small" style="margin-top: 8px;">DMを開く</button>
+                `;
+
+                card.addEventListener('click', () => {
+                    openAdminDmChat(u);
+                });
+                adminDmMemberGrid.appendChild(card);
+
+                // 各メンバーのメッセージを監視して管理者側の未読を判定
+                const { collection, query, orderBy, onSnapshot } = window.fb;
+                onSnapshot(query(collection(window.db, "dms", u.id, "messages"), orderBy("timestamp", "asc")), (snapshot) => {
+                    const messages = [];
+                    snapshot.forEach(doc => messages.push(doc.data()));
+                    if (messages.length > 0) {
+                        const lastMsg = messages[messages.length - 1];
+                        const adminLastRead = Number(localStorage.getItem(`admin_read_${u.id}`) || 0);
+                        const badgeEl = document.getElementById(unreadBadgeId);
+
+                        // 最後の発言者がメンバー本人で、かつ管理者がまだ読んでいない場合
+                        if (lastMsg.senderId !== 'admin' && lastMsg.timestamp > adminLastRead) {
+                            if (badgeEl) badgeEl.classList.remove('hidden');
+                            adminDmBadge.classList.remove('hidden');
+                        } else {
+                            if (badgeEl) badgeEl.classList.add('hidden');
+                        }
+                    }
+                });
+            });
+        }
+
+        function openAdminDmChat(user) {
+            currentDmTargetUser = user;
+            adminDmListView.classList.add('hidden');
+            adminDmChatView.classList.remove('hidden');
+            activeDmTitle.textContent = `💬 DM相談: ${user.name} (@${user.id})`;
+
+            // 管理者がこのメンバーを開いたので既読時間を更新
+            localStorage.setItem(`admin_read_${user.id}`, Date.now());
+
+            const { collection, query, orderBy, onSnapshot } = window.fb;
+            if (unsubscribeDm) unsubscribeDm();
+            unsubscribeDm = onSnapshot(query(collection(window.db, "dms", user.id, "messages"), orderBy("timestamp", "asc")), (snapshot) => {
+                const messages = [];
+                snapshot.forEach(doc => messages.push(doc.data()));
+                renderDmMessages(messages, adminDmBox);
+            });
+        }
+
+        backToDmListBtn.addEventListener('click', () => {
+            if (unsubscribeDm) unsubscribeDm();
+            adminDmChatView.classList.add('hidden');
+            adminDmListView.classList.remove('hidden');
+            currentDmTargetUser = null;
+            listenAdminDmMemberList(); // リスト再描画
+        });
+
+        sendAdminDmBtn.addEventListener('click', sendAdminDmMessage);
+        adminDmInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendAdminDmMessage();
+        });
+
+        async function sendAdminDmMessage() {
+            const text = adminDmInput.value.trim();
+            if (!text || !currentDmTargetUser) return;
+            const currentUser = getCurrentUser();
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            try {
+                const { collection, addDoc } = window.fb;
+                await addDoc(collection(window.db, "dms", currentDmTargetUser.id, "messages"), {
+                    sender: currentUser.name,
+                    senderId: currentUser.id,
+                    message: text,
+                    timestamp: Date.now(),
+                    time: timeStr
+                });
+                adminDmInput.value = '';
+            } catch (err) {
+                console.error("管理者DM送信エラー:", err);
+                alert("送信に失敗しました。");
+            }
+        }
+
+        function renderDmMessages(messages, targetBox) {
+            targetBox.innerHTML = '';
+            if (messages.length === 0) {
+                targetBox.innerHTML = '<div style="opacity: 0.5; font-size: 13px; text-align: center; padding: 20px;">メッセージはまだありません</div>';
+                return;
+            }
+            messages.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'chat-message';
+                div.innerHTML = `
+                    <div><span class="chat-user">${escapeHtml(msg.sender)}</span><span class="chat-time">${msg.time}</span></div>
+                    <div class="chat-text">${escapeHtml(msg.message)}</div>
+                `;
+                targetBox.appendChild(div);
+            });
+            targetBox.scrollTop = targetBox.scrollHeight;
+        }
+
         function listenNotices() {
             const { collection, query, orderBy, limit, onSnapshot } = window.fb;
             onSnapshot(query(collection(window.db, "notices"), orderBy("timestamp", "desc"), limit(5)), (snapshot) => {
@@ -973,7 +1211,6 @@
             });
         }
 
-        // 別ページ用：すべてのお知らせを取得するリスナー
         function listenAllNotices() {
             const { collection, query, orderBy, onSnapshot } = window.fb;
             onSnapshot(query(collection(window.db, "notices"), orderBy("timestamp", "desc")), (snapshot) => {
@@ -1034,7 +1271,6 @@
                     readBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         markAsRead(notice.id);
-                        // 再描画を促すためリフレッシュ
                         listenNotices();
                         listenAllNotices();
                     });
