@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>組織ポータルアプリ（セキュリティ向上版）</title>
+    <title>組織ポータルアプリ（通知修正版）</title>
     
     <!-- Markdownレンダラー (marked.js) の読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -657,7 +657,6 @@
 
         const DEFAULT_ADMIN_ID = "admin";
         const DEFAULT_ADMIN_EMAIL = "admin@portal.local";
-        // ※ 平文のデフォルトパスワード（DEFAULT_ADMIN_PASS）はセキュリティ上の理由から削除しました。
 
         const loginContainer = document.getElementById('login-container');
         const appContainer = document.getElementById('app-container');
@@ -1325,9 +1324,25 @@
             const timeStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
             
             try {
+                // 1. Firestoreへ保存
                 await window.fb.addDoc(window.fb.collection(window.db, "notices"), {
                     title, content, imageUrl, author: getCurrentUser().name, timestamp: Date.now(), time: timeStr
                 });
+
+                // 2. ntfy.shへ通知を送信（encodeURIComponentでエンコード）
+                try {
+                    await fetch('https://ntfy.sh/my-org-notice-SSS465270', {
+                        method: 'POST',
+                        headers: {
+                            'Title': encodeURIComponent(title),
+                            'Priority': 'default',
+                            'Tags': 'loudspeaker'
+                        },
+                        body: `${getCurrentUser().name}さんから新しいお知らせがあります。\n${content.substring(0, 80)}...`
+                    });
+                } catch (notifErr) {
+                    console.error("ntfy通知送信失敗:", notifErr);
+                }
 
                 noticeTitleInput.value = '';
                 noticeContentInput.value = '';
